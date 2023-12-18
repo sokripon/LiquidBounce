@@ -114,6 +114,7 @@ object ModuleManager : Listenable, Iterable<Module> by modules {
             ModuleSleepWalker,
             ModuleSpoofer,
             ModuleVehicleOneHit,
+            ModuleProjectileAccelerator,
 
             // Fun
             ModuleDankBobbing,
