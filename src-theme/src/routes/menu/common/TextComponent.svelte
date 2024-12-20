@@ -148,6 +148,7 @@
 
     .text {
         display: inline;
+        white-space: pre;
 
         &.allow-preformatting {
             font-family: monospace;
