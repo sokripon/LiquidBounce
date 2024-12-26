@@ -92,6 +92,8 @@ open class ClientModule(
             if (new) {
                 enable()
             } else {
+                // Cancel all sequences when module is disabled, maybe disable first and then cancel?
+                cancelAllSequences()
                 disable()
             }
         }.onSuccess {
