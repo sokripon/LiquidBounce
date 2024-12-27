@@ -66,21 +66,6 @@ interface EventListener {
         }
     }
 
-    /**
-     * Cancels all sequences associated with this event listener.
-     * This is called when a module is disabled to ensure no sequences continue running.
-     */
-    fun cancelAllSequences() {
-        SequenceManager.sequences.removeAll { sequence ->
-            if (sequence.owner == this) {
-                sequence.cancel()
-                true
-            } else {
-                false
-            }
-        }
-    }
-
 }
 
 inline fun <reified T : Event> EventListener.handler(
