@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2023 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,15 +18,25 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.render
 
+import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
 
 /**
  * NoSwing module
  *
  * Disables the swing effect.
  */
+object ModuleNoSwing : ClientModule("NoSwing", Category.RENDER) {
+    private val hideFor by multiEnumChoice("HideFor", HideFor.entries)
 
-object ModuleNoSwing : Module("NoSwing", Category.RENDER) {
-    val serverSide by boolean("ServerSide", false)
+    fun shouldHideForServer() = this.running && HideFor.SERVER in hideFor
+    fun shouldHideForClient() = this.running && HideFor.CLIENT in hideFor
+
+    private enum class HideFor(
+        override val choiceName: String
+    ) : NamedChoice {
+        CLIENT("Client"),
+        SERVER("Server")
+    }
 }

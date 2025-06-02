@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2023 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,16 +16,20 @@
  * You should have received a copy of the GNU General Public License
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
  */
-
 package net.ccbluex.liquidbounce.features.command
 
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
+import net.ccbluex.liquidbounce.features.module.MinecraftShortcuts
+import net.ccbluex.liquidbounce.lang.translation
+import net.ccbluex.liquidbounce.utils.client.*
+import net.minecraft.text.ClickEvent
+import net.minecraft.text.HoverEvent
 import net.minecraft.text.MutableText
-import net.minecraft.text.Text
 import java.util.*
 
 typealias CommandHandler = (Command, Array<Any>) -> Unit
 
+@Suppress("LongParameterList")
 class Command(
     val name: String,
     val aliases: Array<out String>,
@@ -33,26 +37,27 @@ class Command(
     val subcommands: Array<Command>,
     val executable: Boolean,
     val handler: CommandHandler?,
-    var parentCommand: Command? = null
-) {
+    val requiresIngame: Boolean,
+    private var parentCommand: Command? = null
+) : MinecraftShortcuts {
     val translationBaseKey: String
         get() = "liquidbounce.command.${getParentKeys(this, name)}"
 
-    val description: MutableText
-        get() = Text.translatable("$translationBaseKey.description")
+    val description: String
+        get() = translation("$translationBaseKey.description").convertToString()
 
     init {
         subcommands.forEach {
-            if (it.parentCommand != null) {
-                throw IllegalStateException("Subcommand already has parent command")
+            check(it.parentCommand == null) {
+                "Subcommand already has parent command"
             }
 
             it.parentCommand = this
         }
 
         parameters.forEach {
-            if (it.command != null) {
-                throw IllegalStateException("Parameter already has a command")
+            check(it.command == null) {
+                "Parameter already has a command"
             }
 
             it.command = this
@@ -61,19 +66,81 @@ class Command(
 
     private fun getParentKeys(currentCommand: Command?, current: String): String {
         val parentName = currentCommand?.parentCommand?.name
-        return if (parentName != null) getParentKeys(
-            currentCommand.parentCommand, "$parentName.subcommand.$current"
-        ) else current
+
+        return if (parentName != null) {
+            getParentKeys(currentCommand.parentCommand, "$parentName.subcommand.$current")
+        } else {
+            current
+        }
     }
 
     fun result(key: String, vararg args: Any): MutableText {
-        return Text.translatable("$translationBaseKey.result.$key", *args)
+        return translation("$translationBaseKey.result.$key", args = args)
+    }
+
+    /**
+     * Sends a styled command result with copyable content
+     *
+     * @param key Translation key (will be prefixed with command's translation base)
+     * @param data Optional data to be displayed and copied
+     * @param formatting Function to apply formatting to the text (default: regular)
+     * @param hover Optional hover event (defaults to "Click to copy" tooltip)
+     * @param clickAction Optional click action type (defaults to COPY_TO_CLIPBOARD)
+     */
+    fun printStyledText(
+        key: String,
+        data: String? = null,
+        formatting: (MutableText) -> MutableText = ::regular,
+        hover: HoverEvent? = HoverEvent(HoverEvent.Action.SHOW_TEXT, translation("liquidbounce.tooltip.clickToCopy")),
+        clickAction: ClickEvent.Action = ClickEvent.Action.COPY_TO_CLIPBOARD
+    ) {
+        val content = data?.let(::variable) ?: markAsError("N/A")
+        val resultText = formatting(result(key, content))
+        val clickEvent = data?.let { ClickEvent(clickAction, it) }
+
+        chat(resultText.onHover(hover).onClick(clickEvent))
+    }
+
+    /**
+     * Sends a styled command result with copyable content and custom text component
+     *
+     * @param key Translation key (will be prefixed with command's translation base)
+     * @param textComponent Text component to display
+     * @param copyContent Optional content to copy when clicked (defaults to text component's string representation)
+     * @param formatting Function to apply formatting to the text (default: regular)
+     * @param hover Optional hover event (defaults to "Click to copy" tooltip)
+     */
+    fun printStyledComponent(
+        key: String,
+        textComponent: MutableText? = null,
+        copyContent: String? = null,
+        formatting: (MutableText) -> MutableText = ::regular,
+        hover: HoverEvent? = HoverEvent(HoverEvent.Action.SHOW_TEXT, translation("liquidbounce.tooltip.clickToCopy"))
+    ) {
+        val displayComponent = textComponent ?: markAsError("N/A")
+        val content = copyContent ?: displayComponent.convertToString()
+
+        chat(formatting(result(key, displayComponent)).copyable(copyContent = content, hover = hover))
+    }
+
+    fun resultWithTree(key: String, vararg args: Any): MutableText {
+        var parentCommand = this.parentCommand
+        if (parentCommand != null) {
+            // Keep going until parent command is null
+            while (parentCommand?.parentCommand != null) {
+                parentCommand = parentCommand.parentCommand
+            }
+
+            return parentCommand!!.result(key, args = args)
+        }
+
+        return translation("$translationBaseKey.result.$key", args = args)
     }
 
     /**
      * Returns the name of the command with the name of its parent classes
      */
-    fun getFullName(): String {
+    private fun getFullName(): String {
         val parent = this.parentCommand
 
         return if (parent == null) {
@@ -133,10 +200,12 @@ class Command(
 
         val offset = args.size - commandIdx - 1
 
-        if (offset == 0 && isNewParameter || offset == 1 && !isNewParameter) {
-            val comparedAgainst = if (isNewParameter) {
-                ""
-            } else args[offset]
+        val isAtSecondParameterBeginning = offset == 0 && isNewParameter
+        val isInSecondParameter = offset == 1 && !isNewParameter
+
+        // Handle Subcommands
+        if (isAtSecondParameterBeginning || isInSecondParameter) {
+            val comparedAgainst = if (!isNewParameter) args[offset] else ""
 
             this.subcommands.forEach { subcommand ->
                 if (subcommand.name.startsWith(comparedAgainst, true)) {
@@ -173,8 +242,8 @@ class Command(
 
         val handler = parameter.autocompletionHandler ?: return
 
-        for (s in handler(args.getOrElse(idx) { "" }, args)) {
-            builder.suggest(s)
-        }
+        val suggestions = handler.autocomplete(begin = args.getOrElse(idx) { "" }, args = args)
+
+        suggestions.forEach(builder::suggest)
     }
 }

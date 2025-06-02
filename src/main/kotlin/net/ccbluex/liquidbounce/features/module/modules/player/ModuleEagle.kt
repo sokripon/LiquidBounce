@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2023 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,13 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.player
 
+import net.ccbluex.liquidbounce.config.types.NamedChoice
+import net.ccbluex.liquidbounce.config.types.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.events.MovementInputEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ScaffoldBlockItemSelection.isValidBlock
 import net.ccbluex.liquidbounce.utils.entity.isCloseToEdge
 import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention
 
@@ -30,16 +33,66 @@ import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention
  *
  * Legit trick to build faster.
  */
-object ModuleEagle : Module("Eagle", Category.PLAYER) {
+object ModuleEagle : ClientModule("Eagle", Category.PLAYER,
+    aliases = arrayOf("FastBridge", "BridgeAssistant", "LegitScaffold")
+) {
 
-    val edgeDistance by float("EagleEdgeDistance", 0.4f, 0.01f..1.3f)
+    private val edgeDistance by float("EagleEdgeDistance", 0.4f, 0.01f..1.3f)
 
-    val repeatable = handler<MovementInputEvent>(priority = EventPriorityConvention.SAFETY_FEATURE) {
-        val shouldBeActive = !player.abilities.flying && player.isOnGround
+    private object Conditional : ToggleableConfigurable(this, "Conditional", true) {
+        private val conditions by multiEnumChoice("Conditions",
+            Conditions.ON_GROUND
+        )
 
-        if (shouldBeActive && player.isCloseToEdge(it.directionalInput, edgeDistance.toDouble())) {
-            it.sneaking = true
+        val pitch by floatRange("Pitch", -90f..90f, -90f..90f)
+
+        fun shouldSneak(event: MovementInputEvent) =
+            if (!enabled || event.sneak) {
+                true
+            } else {
+                player.pitch in pitch && conditions.all { it.meetsCondition(event) }
+            }
+
+        @Suppress("unused")
+        private enum class Conditions(
+            override val choiceName: String,
+            val meetsCondition: (event: MovementInputEvent) -> Boolean
+        ) : NamedChoice {
+            LEFT("Left", { event ->
+                event.directionalInput.left
+            }),
+            RIGHT("Right", { event ->
+                event.directionalInput.right
+            }),
+            FORWARDS("Forwards", { event ->
+                event.directionalInput.forwards
+            }),
+            BACKWARDS("Backwards", { event ->
+                event.directionalInput.backwards
+            }),
+            HOLDING_BLOCKS("HoldingBlocks", { _ ->
+                isValidBlock(player.mainHandStack) || isValidBlock(player.offHandStack)
+            }),
+            ON_GROUND("OnGround", { _ ->
+                player.isOnGround
+            }),
+            SNEAK("Sneak", { event ->
+                event.sneak
+            })
         }
+    }
+
+    init {
+        tree(Conditional)
+    }
+
+    @Suppress("unused")
+    private val handleMovementInput = handler<MovementInputEvent>(
+        priority = EventPriorityConvention.SAFETY_FEATURE
+    ) { event ->
+        val shouldBeActive = !player.abilities.flying && Conditional.shouldSneak(event)
+
+        event.sneak = shouldBeActive && player.isCloseToEdge(event.directionalInput, edgeDistance.toDouble())
     }
 
 }

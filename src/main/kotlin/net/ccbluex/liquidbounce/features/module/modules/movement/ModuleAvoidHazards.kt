@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2023 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,16 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.movement
 
+import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.event.events.BlockShapeEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.block.getBlock
 import net.minecraft.block.*
-import net.minecraft.util.math.Direction
+import net.minecraft.fluid.FluidState
+import net.minecraft.fluid.Fluids
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShapes
 
 /**
@@ -32,35 +35,54 @@ import net.minecraft.util.shape.VoxelShapes
  *
  * Prevents you walking into blocks that might be malicious for you.
  */
-object ModuleAvoidHazards : Module("AvoidHazards", Category.MOVEMENT) {
+object ModuleAvoidHazards : ClientModule("AvoidHazards", Category.MOVEMENT) {
+    private val avoid by multiEnumChoice("Avoid", Avoid.entries)
 
-    val cacti by boolean("Cacti", true)
-    val berryBush by boolean("BerryBush", true)
-    val pressurePlates by boolean("PressurePlates", true)
-    val fire by boolean("Fire", true)
-    val magmaBlocks by boolean("MagmaBlocks", true)
-    val cobWebs by boolean("Cobwebs", true)
+    // Conflicts with AvoidHazards
+    val cobWebs get() = Avoid.COBWEB in avoid
 
+    @Suppress("MagicNumber")
+    private val UNSAFE_BLOCK_CAP = Block.createCuboidShape(
+        0.0,
+        0.0,
+        0.0,
+        16.0,
+        4.0,
+        16.0
+    )
+
+    @Suppress("unused")
     val shapeHandler = handler<BlockShapeEvent> { event ->
-        if (cacti && event.state.block is CactusBlock) {
-            event.shape = VoxelShapes.fullCube()
-        } else if (berryBush && event.state.block is SweetBerryBushBlock) {
-            event.shape = VoxelShapes.fullCube()
-        } else if (fire && event.state.block is FireBlock) {
-            event.shape = VoxelShapes.fullCube()
-        } else if (cobWebs && event.state.block is CobwebBlock) {
-            event.shape = VoxelShapes.fullCube()
-        } else if (pressurePlates && event.state.block is AbstractPressurePlateBlock) {
-            event.shape = Block.createCuboidShape(0.0, 0.0, 0.0, 16.0, 4.0, 16.0)
-        } else if (magmaBlocks && event.pos.down().getBlock() is MagmaBlock && !event.state.isSideSolid(
-                world,
-                event.pos,
-                Direction.UP,
-                SideShapeType.CENTER
-            )
-        ) {
-            event.shape = Block.createCuboidShape(0.0, 0.0, 0.0, 16.0, 4.0, 16.0)
+        avoid.find { it.test(event.state.block, event.state.fluidState, event.pos) }?.let {
+            event.shape = if (it.fullCube) VoxelShapes.fullCube() else UNSAFE_BLOCK_CAP
         }
     }
 
+    private enum class Avoid(
+        override val choiceName: String,
+        val fullCube: Boolean = true,
+        val test: (block: Block, fluidState: FluidState, pos: BlockPos) -> Boolean
+    ) : NamedChoice {
+        CACTI("Cacti", test = { block, _, _ ->
+            block is CactusBlock
+        }),
+        BERRY_BUSH("BerryBush", test = { block, _, _ ->
+            block is SweetBerryBushBlock
+        }),
+        FIRE("Fire", test = { block, _, _, ->
+            block is FireBlock
+        }),
+        COBWEB("Cobwebs", test = { block, _, _, ->
+            block is CobwebBlock
+        }),
+        PRESSURE_PLATES("PressurePlates", fullCube = false, test = { block, _, _ ->
+            block is AbstractPressurePlateBlock
+        }),
+        MAGMA("MagmaBlocks", fullCube = false, test = { _, _, pos ->
+            pos.down().getBlock() is MagmaBlock
+        }),
+        LAVA("Lava", test = { _, fluidState, _ ->
+            fluidState.isOf(Fluids.LAVA) || fluidState.isOf(Fluids.FLOWING_LAVA)
+        })
+    }
 }

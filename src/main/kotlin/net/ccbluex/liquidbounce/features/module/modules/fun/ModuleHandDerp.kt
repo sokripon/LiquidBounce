@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2023 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,13 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.`fun`
 
-import net.ccbluex.liquidbounce.config.Choice
-import net.ccbluex.liquidbounce.config.ChoiceConfigurable
+import net.ccbluex.liquidbounce.config.types.Choice
+import net.ccbluex.liquidbounce.config.types.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
-import net.ccbluex.liquidbounce.event.repeatable
 import net.ccbluex.liquidbounce.event.sequenceHandler
+import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.injection.mixins.minecraft.entity.MixinPlayerEntityAccessor
 import net.minecraft.network.packet.c2s.common.ClientOptionsC2SPacket
 import net.minecraft.network.packet.c2s.common.SyncedClientOptions
@@ -37,7 +37,7 @@ import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket
  *
  * Switches your main hand.
  */
-object ModuleHandDerp : Module("HandDerp", Category.FUN) {
+object ModuleHandDerp : ClientModule("HandDerp", Category.FUN) {
 
 
     private val silent by boolean("Silent", false)
@@ -46,6 +46,7 @@ object ModuleHandDerp : Module("HandDerp", Category.FUN) {
 
     private val originalHand = mc.options.mainArm.value
     private var currentHand = mc.options.mainArm.value
+
     private fun calculatePlayerPartValue(): Int {
         var value = 0
         for (part in mc.options.enabledPlayerModelParts) {
@@ -67,7 +68,8 @@ object ModuleHandDerp : Module("HandDerp", Category.FUN) {
                     calculatePlayerPartValue(),
                     currentHand,
                     mc.shouldFilterText(),
-                    mc.options.allowServerListing.value
+                    mc.options.allowServerListing.value,
+                    mc.options.particles.value
                 )
             )
         )
@@ -78,34 +80,35 @@ object ModuleHandDerp : Module("HandDerp", Category.FUN) {
         val packet = it.packet
         if (silent && packet is EntityTrackerUpdateS2CPacket &&
             packet.trackedValues.any { data ->
-                data.id == (mc.player as MixinPlayerEntityAccessor).getTrackedMainArm().id }) {
+                data.id == MixinPlayerEntityAccessor.getTrackedMainArm().id }) {
             it.cancelEvent()
         }
     }
 
     override fun disable() {
-        println(calculatePlayerPartValue())
         if (mc.options.mainArm.value != originalHand) {
             switchHand()
         }
     }
 
     private object Delay : Choice("Delay") {
-        override val parent: ChoiceConfigurable
+        override val parent: ChoiceConfigurable<Choice>
             get() = mode
 
-        val delayValue by int("Delay", 1, 0..20)
+        val delayValue by int("Delay", 1, 0..20, "ticks")
 
-        val repeatable = repeatable {
+        @Suppress("unused")
+        val repeatable = tickHandler {
             waitTicks(delayValue)
             switchHand()
         }
     }
 
     private object Swing : Choice("Swing") {
-        override val parent: ChoiceConfigurable
+        override val parent: ChoiceConfigurable<Choice>
             get() = mode
 
+        @Suppress("unused")
         val packetHandler = sequenceHandler<PacketEvent>(priority = 1) {
             val packet = it.packet
             if (packet is HandSwingC2SPacket) {

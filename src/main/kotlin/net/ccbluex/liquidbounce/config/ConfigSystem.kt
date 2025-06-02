@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2023 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,22 +19,19 @@
 package net.ccbluex.liquidbounce.config
 
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import com.google.gson.reflect.TypeToken
 import net.ccbluex.liquidbounce.LiquidBounce
-import net.ccbluex.liquidbounce.authlib.account.MinecraftAccount
-import net.ccbluex.liquidbounce.config.adapter.*
-import net.ccbluex.liquidbounce.config.util.ExcludeStrategy
-import net.ccbluex.liquidbounce.render.Fonts
-import net.ccbluex.liquidbounce.render.engine.Color4b
-import net.ccbluex.liquidbounce.utils.client.chat
+import net.ccbluex.liquidbounce.config.gson.fileGson
+import net.ccbluex.liquidbounce.config.types.ChoiceConfigurable
+import net.ccbluex.liquidbounce.config.types.Configurable
+import net.ccbluex.liquidbounce.config.types.DynamicConfigurable
+import net.ccbluex.liquidbounce.config.types.Value
 import net.ccbluex.liquidbounce.utils.client.logger
 import net.ccbluex.liquidbounce.utils.client.mc
-import net.ccbluex.liquidbounce.utils.client.regular
-import net.minecraft.block.Block
-import net.minecraft.item.Item
+import net.ccbluex.liquidbounce.utils.io.createZipArchive
+import net.ccbluex.liquidbounce.utils.io.extractZip
 import java.io.File
 import java.io.Reader
 import java.io.Writer
@@ -44,13 +41,20 @@ import java.io.Writer
  *
  * @author kawaiinekololis (@team ccbluex)
  */
+@Suppress("TooManyFunctions")
 object ConfigSystem {
+
+    var isFirstLaunch: Boolean = false
+        private set
 
     // Config directory folder
     val rootFolder = File(
         mc.runDirectory, LiquidBounce.CLIENT_NAME
-    ).apply { // Check if there is already a config folder and if not create new folder (mkdirs not needed - .minecraft should always exist)
+    ).apply {
+        // Check if there is already a config folder and if not create new folder
+        // (mkdirs not needed - .minecraft should always exist)
         if (!exists()) {
+            isFirstLaunch = true
             mkdir()
         }
     }
@@ -58,52 +62,42 @@ object ConfigSystem {
     // User config directory folder
     val userConfigsFolder = File(
         rootFolder, "configs"
-    ).apply { // Check if there is already a config folder and if not create new folder (mkdirs not needed - .minecraft should always exist)
+    ).apply {
+        // Check if there is already a config folder and if not create new folder
+        // (mkdirs not needed - .minecraft should always exist)
         if (!exists()) {
             mkdir()
         }
     }
 
-    // A mutable list of all root configurable classes (and their sub-classes)
-    private val configurables: MutableList<Configurable> = mutableListOf()
+    internal val backupFolder = File(
+        rootFolder, "backups"
+    ).apply {
+        // Check if there is already a config folder and if not create new folder
+        // (mkdirs not needed - .minecraft should always exist)
+        if (!exists()) {
+            mkdir()
+        }
+    }
 
-    // Gson
-    private val confType = TypeToken.get(Configurable::class.java).type
-    private val gson = GsonBuilder()
-        .setPrettyPrinting()
-        .addSerializationExclusionStrategy(ExcludeStrategy())
-        .registerTypeHierarchyAdapter(ClosedRange::class.javaObjectType, RangeSerializer)
-        .registerTypeHierarchyAdapter(Item::class.javaObjectType, ItemValueSerializer)
-        .registerTypeAdapter(Color4b::class.javaObjectType, ColorSerializer)
-        .registerTypeHierarchyAdapter(Block::class.javaObjectType, BlockValueSerializer)
-        .registerTypeAdapter(Fonts.FontInfo::class.javaObjectType, FontDetailSerializer)
-        .registerTypeAdapter(ChoiceConfigurable::class.javaObjectType, ChoiceConfigurableSerializer)
-        .registerTypeHierarchyAdapter(NamedChoice::class.javaObjectType, EnumChoiceSerializer)
-        .registerTypeAdapter(IntRange::class.javaObjectType, IntRangeSerializer)
-        .registerTypeHierarchyAdapter(MinecraftAccount::class.javaObjectType, MinecraftAccountSerializer)
-        .registerTypeHierarchyAdapter(Configurable::class.javaObjectType, ConfigurableSerializer).create()
-
-    val autoConfigGson = GsonBuilder()
-        .setPrettyPrinting()
-        .addSerializationExclusionStrategy(ExcludeStrategy())
-        .registerTypeHierarchyAdapter(ClosedRange::class.javaObjectType, RangeSerializer)
-        .registerTypeHierarchyAdapter(Item::class.javaObjectType, ItemValueSerializer)
-        .registerTypeAdapter(Color4b::class.javaObjectType, ColorSerializer)
-        .registerTypeHierarchyAdapter(Block::class.javaObjectType, BlockValueSerializer)
-        .registerTypeAdapter(Fonts.FontInfo::class.javaObjectType, FontDetailSerializer)
-        .registerTypeAdapter(ChoiceConfigurable::class.javaObjectType, ChoiceConfigurableSerializer)
-        .registerTypeHierarchyAdapter(NamedChoice::class.javaObjectType, EnumChoiceSerializer)
-        .registerTypeAdapter(IntRange::class.javaObjectType, IntRangeSerializer)
-        .registerTypeHierarchyAdapter(MinecraftAccount::class.javaObjectType, MinecraftAccountSerializer)
-        .registerTypeHierarchyAdapter(Configurable::class.javaObjectType, AutoConfigurableSerializer)
-        .create()
+    // A mutable list of all root configurable classes (and their subclasses)
+    val configurables = ArrayList<Configurable>()
 
     /**
      * Create new root configurable
      */
     fun root(name: String, tree: MutableList<out Configurable> = mutableListOf()): Configurable {
         @Suppress("UNCHECKED_CAST")
-        return root(Configurable(name, tree as MutableList<Value<*>>))
+        return root(Configurable(name, value = tree as MutableList<Value<*>>))
+    }
+
+    fun dynamic(
+        name: String,
+        tree: MutableList<out Configurable> = mutableListOf(),
+        factory: (String, JsonObject) -> Value<*>
+    ): Configurable {
+        @Suppress("UNCHECKED_CAST")
+        return root(DynamicConfigurable(name, tree as MutableList<Value<*>>, factory))
     }
 
     /**
@@ -115,24 +109,57 @@ object ConfigSystem {
         return configurable
     }
 
+    val Configurable.jsonFile: File
+        get() {
+            require(this in configurables) { "${this.name} is not root configurable" }
+            return File(rootFolder, "${this.loweredName}.json")
+        }
+
+    /**
+     * Create a ZIP file of root configurable files
+     */
+    fun backup(fileName: String, configurables: List<Configurable> = this.configurables) {
+        val zipFile = File(backupFolder, "$fileName.zip")
+        check(!zipFile.exists()) { "Backup file already exists" }
+
+        configurables.map { configurable -> configurable.jsonFile }.createZipArchive(zipFile)
+    }
+
+    /**
+     * Restore a backup from a ZIP file to the root configurable files
+     */
+    fun restore(fileName: String) {
+        val zipFile = File(backupFolder, "$fileName.zip")
+        check(zipFile.exists()) { "Backup file does not exist" }
+
+        // Store all configurables to make sure they are up to date,
+        // before we overwrite some of them through [extractZip]
+        storeAll()
+        extractZip(zipFile, rootFolder)
+        loadAll()
+    }
+
     /**
      * All configurables should load now.
      */
-    fun load() {
+    fun loadAll() {
         for (configurable in configurables) { // Make a new .json file to save our root configurable
-            File(rootFolder, "${configurable.loweredName}.json").runCatching {
+            configurable.jsonFile.runCatching {
                 if (!exists()) {
-                    storeAll()
+                    // Do not try to load a non-existing file
                     return@runCatching
                 }
 
                 logger.debug("Reading config ${configurable.loweredName}...")
-                deserializeConfigurable(configurable, reader())
+                deserializeConfigurable(configurable, bufferedReader())
+            }.onSuccess {
                 logger.info("Successfully loaded config '${configurable.loweredName}'.")
             }.onFailure {
                 logger.error("Unable to load config ${configurable.loweredName}", it)
-                storeAll()
             }
+
+            // After loading the config, we need to store it again to make sure all values are up to date
+            storeConfigurable(configurable)
         }
     }
 
@@ -152,13 +179,13 @@ object ConfigSystem {
      * The configurable should be known to the config system.
      */
     fun storeConfigurable(configurable: Configurable) { // Make a new .json file to save our root configurable
-        File(rootFolder, "${configurable.loweredName}.json").runCatching {
+        configurable.jsonFile.runCatching {
             if (!exists()) {
                 createNewFile().let { logger.debug("Created new file (status: $it)") }
             }
 
             logger.debug("Writing config ${configurable.loweredName}...")
-            serializeConfigurable(configurable, writer())
+            serializeConfigurable(configurable, bufferedWriter())
             logger.info("Successfully saved config '${configurable.loweredName}'.")
         }.onFailure {
             logger.error("Unable to store config ${configurable.loweredName}", it)
@@ -168,16 +195,22 @@ object ConfigSystem {
     /**
      * Serialize a configurable to a writer
      */
-    fun serializeConfigurable(configurable: Configurable, writer: Writer, gson: Gson = this.gson) {
+    private fun serializeConfigurable(configurable: Configurable, writer: Writer, gson: Gson = fileGson) {
         gson.newJsonWriter(writer).use {
-            gson.toJson(configurable, confType, it)
+            gson.toJson(configurable, Configurable::class.javaObjectType, it)
         }
     }
 
     /**
+     * Serialize a configurable to a writer
+     */
+    fun serializeConfigurable(configurable: Configurable, gson: Gson = fileGson) =
+        gson.toJsonTree(configurable, Configurable::class.javaObjectType)
+
+    /**
      * Deserialize a configurable from a reader
      */
-    fun deserializeConfigurable(configurable: Configurable, reader: Reader, gson: Gson = this.gson) {
+    fun deserializeConfigurable(configurable: Configurable, reader: Reader, gson: Gson = fileGson) {
         JsonParser.parseReader(gson.newJsonReader(reader))?.let {
             deserializeConfigurable(configurable, it)
         }
@@ -187,72 +220,119 @@ object ConfigSystem {
      * Deserialize a configurable from a json element
      */
     fun deserializeConfigurable(configurable: Configurable, jsonElement: JsonElement) {
-        runCatching {
-            val jsonObject = jsonElement.asJsonObject
+        val jsonObject = jsonElement.asJsonObject
 
-            val chatMessages = jsonObject.getAsJsonArray("chat")
-            if (chatMessages != null) {
-                for (messages in chatMessages) {
-                    chat(messages.asString)
+        // Check if the name is the same as the configurable name
+        val name = jsonObject.getAsJsonPrimitive("name").asString
+        check(name == configurable.name || configurable.aliases.contains(name)) {
+            "Configurable name does not match the name in the json object"
+        }
+
+        val values = jsonObject.getAsJsonArray("value")
+            .map { valueElement -> valueElement.asJsonObject }
+            .associateBy { valueObj -> valueObj["name"].asString!! }
+
+        when (configurable) {
+
+            // On a dynamic configurable, we first create an instance of the value and then deserialize it
+            is DynamicConfigurable -> {
+                if (values.isNotEmpty()) {
+                    // Clear the current values
+                    configurable.inner.clear()
+                }
+
+                for ((name, value) in values) {
+                    val valueInstance = configurable.factory(name, value)
+                    configurable.value(valueInstance)
+
+                    deserializeValue(valueInstance, value)
                 }
             }
 
-            val date = jsonObject.getAsJsonPrimitive("date").let { if (it == null) "" else it.asString }
-            val time = jsonObject.getAsJsonPrimitive("time").let { if (it == null) "" else it.asString }
-            val author = jsonObject.getAsJsonPrimitive("author").let { if (it == null) "" else "by $it" }
-            if (date != "" || time != "" || author != "") {
-                chat(regular("Config was created ${if (date != "" || time != "") "on $date $time" else ""} $author"))
-            }
-            if (jsonObject.getAsJsonPrimitive("name").asString != configurable.name) {
-                throw IllegalStateException()
-            }
+            // On an ordinary configurable, we simply deserialize the values that are present
+            else -> {
+                for (value in configurable.inner) {
+                    val currentElement = values[value.name]
+                        // Alias support
+                        ?: values.entries.firstOrNull { entry -> entry.key in value.aliases }?.value
+                        ?: continue
 
-            val values =
-                jsonObject.getAsJsonArray("value").map { it.asJsonObject }.associateBy { it["name"].asString!! }
-
-            for (value in configurable.value) {
-                if (value is Configurable) {
-                    val currentElement = values[value.name] ?: continue
-
-                    runCatching {
-                        if (value is ChoiceConfigurable) {
-                            runCatching {
-                                val newActive = currentElement["active"].asString
-
-                                value.setFromValueName(newActive)
-                            }.onFailure { it.printStackTrace() }
-
-                            val choices = currentElement["choices"].asJsonObject
-
-                            for (choice in value.choices) {
-                                runCatching {
-                                    val choiceElement = choices[choice.name]
-                                        ?: error("Choice ${choice.name} not found")
-
-                                    deserializeConfigurable(choice, choiceElement)
-                                }.onFailure {
-                                    logger.error("Unable to deserialize choice ${choice.name}", it)
-                                }
-                            }
-                        }
-                    }.onFailure {
-                        logger.error("Unable to deserialize configurable ${value.name}", it)
-                    }
-
-                    deserializeConfigurable(value, currentElement)
-                } else {
-                    val currentElement = values[value.name] ?: continue
-
-                    runCatching {
-                        value.deserializeFrom(gson, currentElement["value"])
-                    }.onFailure {
-                        logger.error("Unable to deserialize value ${value.name}", it)
-                    }
+                    deserializeValue(value, currentElement)
                 }
-
             }
-        }.onFailure {
-            logger.error("Unable to deserialize configurable ${configurable.name}", it)
         }
     }
+
+    /**
+     * Deserialize a value from a json object
+     */
+    private fun deserializeValue(value: Value<*>, jsonObject: JsonObject) {
+        // In the case of a configurable, we need to go deeper and deserialize the configurable itself
+        if (value is Configurable) {
+            runCatching {
+                if (value is ChoiceConfigurable<*>) {
+                    // Set current active choice
+                    runCatching {
+                        value.setByString(jsonObject["active"].asString)
+                    }.onFailure {
+                        logger.error("Unable to deserialize active choice for ${value.name}", it)
+                    }
+
+                    // Deserialize each choice
+                    val choices = jsonObject["choices"].asJsonObject
+
+                    for (choice in value.choices) {
+                        runCatching {
+                            val choiceElement = choices[choice.name]
+                                // Alias support
+                                ?: choice.aliases.firstNotNullOfOrNull { alias -> choices[alias] }
+                                ?: error("Choice ${choice.name} not found")
+
+                            deserializeConfigurable(choice, choiceElement)
+                        }.onFailure {
+                            logger.error("Unable to deserialize choice ${choice.name}", it)
+                        }
+                    }
+                }
+
+                // Deserialize the rest of the configurable
+                deserializeConfigurable(value, jsonObject)
+            }.onFailure {
+                logger.error("Unable to deserialize configurable ${value.name}", it)
+            }
+
+            return
+        }
+
+        // Otherwise, we simply deserialize the value
+        runCatching {
+            value.deserializeFrom(fileGson, jsonObject["value"])
+        }.onFailure {
+            logger.error("Unable to deserialize value ${value.name}", it)
+        }
+    }
+
+    inline fun autoComplete(begin: String, validator: (Configurable) -> Boolean = { true }): List<String> {
+        val parts = begin.split(",")
+        val matchingPrefix = parts.last()
+        val resultPrefix = parts.subList(0, parts.size - 1).joinToString(",") + ","
+        return configurables.filter { it.name.startsWith(matchingPrefix, true) && validator(it) }
+            .map { configurable ->
+                if (parts.size == 1) {
+                    configurable.name.lowercase()
+                } else {
+                    resultPrefix + configurable.name.lowercase()
+                }
+            }
+    }
+
+    fun parseConfigurablesFromParameter(name: String?): List<Configurable> {
+        if (name == null) return emptyList()
+        return name.split(",").mapNotNull { getConfigurableByName(it) }
+    }
+
+    fun getConfigurableByName(name: String): Configurable? {
+        return configurables.firstOrNull { it.name.equals(name, true) }
+    }
+
 }
