@@ -21,8 +21,10 @@ package net.ccbluex.liquidbounce.features.module.modules.combat.killaura
 import net.ccbluex.liquidbounce.event.Sequence
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.KillAuraRotationsConfigurable.rotationTiming
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura.simulateInventoryClosing
+import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura.validateAttack
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.features.KillAuraAutoBlock
 import net.ccbluex.liquidbounce.features.module.modules.exploit.ModuleMultiActions
+import net.ccbluex.liquidbounce.features.module.modules.render.ModuleDebug
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.aiming.utils.withFixedYaw
 import net.ccbluex.liquidbounce.utils.clicking.Clicker
@@ -55,6 +57,24 @@ object KillAuraClicker : Clicker<ModuleKillAura>(ModuleKillAura, mc.options.atta
         }
 
         click(attack)
+
+        interactiveScene.unprepare()
+    }
+
+    /**
+     * Attack bypassing the click scheduler for specific scenarios like shield breaking with axes.
+     * This still prepares the environment but doesn't wait for the click scheduler.
+     */
+    suspend fun attackBypass(sequence: Sequence, rotation: Rotation? = null, attack: () -> Boolean) {
+
+        val interactiveScene = InteractiveScene(sequence = sequence, rotation = rotation)
+        if (interactiveScene.prepare()) {
+            return
+        }
+
+        // Execute the attack directly without waiting for click scheduler
+        // TODO: fix this as this ignores the cps settings
+        attack()
 
         interactiveScene.unprepare()
     }

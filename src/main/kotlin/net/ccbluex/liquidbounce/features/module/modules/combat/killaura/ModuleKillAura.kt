@@ -17,6 +17,7 @@
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
  */
 @file:Suppress("WildcardImport")
+
 package net.ccbluex.liquidbounce.features.module.modules.combat.killaura
 
 import com.google.gson.JsonObject
@@ -59,6 +60,7 @@ import net.ccbluex.liquidbounce.utils.combat.attack
 import net.ccbluex.liquidbounce.utils.combat.shouldBeAttacked
 import net.ccbluex.liquidbounce.utils.entity.rotation
 import net.ccbluex.liquidbounce.utils.entity.squaredBoxedDistanceTo
+import net.ccbluex.liquidbounce.utils.entity.wouldBlockHit
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager.isInventoryOpen
 import net.ccbluex.liquidbounce.utils.inventory.isInContainerScreen
@@ -69,6 +71,8 @@ import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.item.AxeItem
 import kotlin.math.pow
 
 /**
@@ -114,6 +118,9 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
     internal val raycast by enumChoice("Raycast", TRACE_ALL)
     private val criticalsSelectionMode by enumChoice("Criticals", CriticalsSelectionMode.SMART)
     private val keepSprint by boolean("KeepSprint", true)
+
+    // Shield breaking optimization
+    private val bypassAxeCooldownOnShield by boolean("BypassAxeCooldownOnShield", true)
 
     // Inventory Handling
     internal val ignoreOpenInventory by boolean("IgnoreOpenInventory", true)
@@ -226,6 +233,7 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
                     }
                 })?.entity ?: target
             }
+
             else -> target
         }
 
@@ -243,7 +251,8 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
     @Suppress("unused")
     private val sprintHandler = handler<SprintEvent> { event ->
         if (shouldBlockSprinting && (event.source == SprintEvent.Source.MOVEMENT_TICK ||
-                event.source == SprintEvent.Source.INPUT)) {
+                event.source == SprintEvent.Source.INPUT)
+        ) {
             event.sprint = false
         }
     }
@@ -254,9 +263,11 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
         KillAuraAutoBlock.makeSeemBlock()
 
         // Are we actually facing the [chosenEntity]
-        val isFacingEnemy = facingEnemy(toEntity = target, rotation = rotation,
+        val isFacingEnemy = facingEnemy(
+            toEntity = target, rotation = rotation,
             range = range.toDouble(),
-            wallsRange = wallRange.toDouble()) || ModuleElytraTarget.canIgnoreKillAuraRotations
+            wallsRange = wallRange.toDouble()
+        ) || ModuleElytraTarget.canIgnoreKillAuraRotations
 
         ModuleDebug.debugParameter(ModuleKillAura, "Is Facing Enemy", isFacingEnemy)
         ModuleDebug.debugParameter(ModuleKillAura, "Rotation", rotation)
@@ -265,7 +276,8 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
         // Check if our target is in range, otherwise deal with auto block
         if (!isFacingEnemy) {
             if (KillAuraAutoBlock.enabled && KillAuraAutoBlock.onScanRange &&
-                player.squaredBoxedDistanceTo(target) <= (range + currentScanExtraRange).pow(2)) {
+                player.squaredBoxedDistanceTo(target) <= (range + currentScanExtraRange).pow(2)
+            ) {
                 KillAuraAutoBlock.startBlocking()
                 return
             }
@@ -286,32 +298,90 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
 
         ModuleDebug.debugParameter(ModuleKillAura, "Valid Rotation", rotation)
 
-        // Attack enemy, according to the attack scheduler
-        if (clickScheduler.isClickTick && validateAttack(target)) {
-            clickScheduler.attack(sequence, rotation) {
-                // On each click, we check if we are still ready to attack
-                if (!validateAttack(target)) {
-                    return@attack false
+        // Check if we should bypass cooldown for axe vs shield attacks
+        val shouldBypassCooldown = shouldBypassAxeCooldownForShield(target)
+
+        ModuleDebug.debugParameter(ModuleKillAura, "Should Bypass Cooldown", shouldBypassCooldown)
+        ModuleDebug.debugParameter(ModuleKillAura, "Is Click Tick", clickScheduler.isClickTick)
+
+        // Attack enemy, according to the attack scheduler or bypass cooldown for shield breaking
+        if ((clickScheduler.isClickTick || shouldBypassCooldown) && validateAttack(target)) {
+            if (shouldBypassCooldown) {
+
+                clickScheduler.attackBypass(sequence, rotation) {
+                    // Check if we are still ready to attack
+                    if (!validateAttack(target)) {
+                        return@attackBypass false
+                    }
+
+                    // Attack enemy
+                    target.attack(true, keepSprint && !shouldBlockSprinting)
+
+                    currentScanExtraRange = scanExtraRange.random()
+                    KillAuraNotifyWhenFail.failedHitsIncrement = 0
+
+                    GenericDebugRecorder.recordDebugInfo(ModuleKillAura, "attackEntity", JsonObject().apply {
+                        add("player", GenericDebugRecorder.debugObject(player))
+                        add("targetPos", GenericDebugRecorder.debugObject(target))
+                    })
+
+                    true
                 }
+            } else {
+                // Normal attack path using click scheduler
+                clickScheduler.attack(sequence, rotation) {
+                    // On each click, we check if we are still ready to attack
+                    if (!validateAttack(target)) {
+                        return@attack false
+                    }
 
-                // Attack enemy
-                target.attack(true, keepSprint && !shouldBlockSprinting)
-                currentScanExtraRange = scanExtraRange.random()
-                KillAuraNotifyWhenFail.failedHitsIncrement = 0
+                    // Attack enemy
+                    target.attack(true, keepSprint && !shouldBlockSprinting)
 
-                GenericDebugRecorder.recordDebugInfo(ModuleKillAura, "attackEntity", JsonObject().apply {
-                    add("player", GenericDebugRecorder.debugObject(player))
-                    add("targetPos", GenericDebugRecorder.debugObject(target))
-                })
+                    currentScanExtraRange = scanExtraRange.random()
+                    KillAuraNotifyWhenFail.failedHitsIncrement = 0
 
-                true
+                    GenericDebugRecorder.recordDebugInfo(ModuleKillAura, "attackEntity", JsonObject().apply {
+                        add("player", GenericDebugRecorder.debugObject(player))
+                        add("targetPos", GenericDebugRecorder.debugObject(target))
+                    })
+
+                    true
+                }
             }
         } else if (KillAuraAutoBlock.currentTickOff > 0 && clickScheduler.willClickAt(KillAuraAutoBlock.currentTickOff)
-            && KillAuraAutoBlock.shouldUnblockToHit) {
+            && KillAuraAutoBlock.shouldUnblockToHit
+        ) {
             KillAuraAutoBlock.stopBlocking(pauses = true)
         } else {
             KillAuraAutoBlock.startBlocking()
         }
+    }
+
+
+    /**
+     * Check if we should bypass the axe cooldown when attacking a shield.
+     * This is useful because axes don't need to be fully charged to break shields.
+     */
+    private fun shouldBypassAxeCooldownForShield(target: Entity): Boolean {
+        // Only bypass if the setting is enabled
+        if (!bypassAxeCooldownOnShield) {
+            return false
+        }
+
+        // Target must be a living entity (player) to have a shield
+        val livingTarget = target as? LivingEntity ?: return false
+        val playerTarget = livingTarget as? PlayerEntity ?: return false
+
+        // Check if we're using an axe (either current or AutoWeapon will switch to one)
+        val usingAxe = player.mainHandStack.item is AxeItem || ModuleAutoWeapon.willBreakShield()
+
+
+        // Check if the target is blocking with a shield
+        val targetBlockingWithShield = livingTarget.blockedByShield(world.damageSources.playerAttack(player)) &&
+            playerTarget.wouldBlockHit(player)
+        ModuleDebug.debugParameter(ModuleKillAura, "shouldbypass shield", usingAxe && targetBlockingWithShield)
+        return usingAxe && targetBlockingWithShield
     }
 
     private fun updateTarget() {
@@ -319,6 +389,7 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
         val situation = when {
             clickScheduler.isClickTick || clickScheduler.willClickAt(1)
                 -> PointTracker.AimSituation.FOR_NEXT_TICK
+
             else -> PointTracker.AimSituation.FOR_THE_FUTURE
         }
         ModuleDebug.debugParameter(ModuleKillAura, "AimSituation", situation)
@@ -414,8 +485,10 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
      *
      *  @return The best spot to attack the entity
      */
-    private fun getSpot(entity: LivingEntity, range: Double,
-                        situation: PointTracker.AimSituation): RotationWithVector? {
+    private fun getSpot(
+        entity: LivingEntity, range: Double,
+        situation: PointTracker.AimSituation
+    ): RotationWithVector? {
         val point = pointTracker.gatherPoint(
             entity,
             situation
@@ -424,10 +497,14 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
         val eyes = point.fromPoint
         val nextPoint = point.toPoint
 
-        ModuleDebug.debugGeometry(this, "Box",
-            ModuleDebug.DebuggedBox(point.box, Color4b.RED.with(a = 60)))
-        ModuleDebug.debugGeometry(this, "CutOffBox",
-            ModuleDebug.DebuggedBox(point.cutOffBox, Color4b.GREEN.with(a = 90)))
+        ModuleDebug.debugGeometry(
+            this, "Box",
+            ModuleDebug.DebuggedBox(point.box, Color4b.RED.with(a = 60))
+        )
+        ModuleDebug.debugGeometry(
+            this, "CutOffBox",
+            ModuleDebug.DebuggedBox(point.cutOffBox, Color4b.GREEN.with(a = 90))
+        )
         ModuleDebug.debugGeometry(this, "Point", ModuleDebug.DebuggedPoint(nextPoint, Color4b.WHITE))
 
         val rotationPreference = LeastDifferencePreference.leastDifferenceToLastPoint(eyes, nextPoint)
