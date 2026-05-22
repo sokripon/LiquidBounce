@@ -1,5 +1,6 @@
 <script lang="ts">
     import type {NamedItem} from "../../../../integration/types";
+    import {itemTextureUrl} from "../../../../integration/rest";
 
     interface Props {
         items: NamedItem[];
@@ -10,13 +11,19 @@
     }
 
     let {items, addLabel = "Add Item", onmove, onremove, onadd}: Props = $props();
+
+    function showFallbackIcon(event: Event) {
+        const img = event.currentTarget as HTMLImageElement;
+        img.style.filter = "grayscale(1)";
+        img.src = itemTextureUrl("minecraft:grass_block");
+    }
 </script>
 
 <div class="ordered-list">
     {#each items as item, index (item.value)}
         <div class="item-row">
             {#if item.icon}
-                <img class="icon" src={item.icon} alt={item.value}/>
+                <img class="icon" src={item.icon} alt={item.value} onerror={showFallbackIcon}/>
             {/if}
             <div class="name">{item.name}</div>
             <div class="controls">
@@ -32,7 +39,9 @@
                         <span class="arrow-placeholder"></span>
                     {/if}
                 </div>
-                <button class="remove-btn" onclick={() => onremove(item.value)} title="Remove">✕</button>
+                <button class="button-remove" title="Remove" onclick={() => onremove(item.value)}>
+                    <img src="img/clickgui/icon-cross.svg" alt="remove">
+                </button>
             </div>
         </div>
     {/each}
@@ -98,18 +107,11 @@
             visibility: hidden;
         }
 
-        .remove-btn {
-            background: none;
+        .button-remove {
+            background-color: transparent;
             border: none;
-            color: #ff4444;
             cursor: pointer;
-            font-size: 14px;
             padding: 2px 5px;
-            transition: color 0.2s;
-
-            &:hover {
-                color: #ff6666;
-            }
         }
     }
 
