@@ -16,6 +16,7 @@
     import Disconnected from "./routes/menu/disconnected/Disconnected.svelte";
     import Browser from "./routes/browser/Browser.svelte";
     import TabbedClickGui from "./routes/clickgui/TabbedClickGui.svelte";
+    import PreviewPage from "./routes/clickgui-list-preview/PreviewPage.svelte";
     import {intToRgba, rgbaToHex} from "./integration/util";
     import type {ThemeColorChangeEvent} from "./integration/events";
 
@@ -30,7 +31,8 @@
         "/proxymanager": ProxyManager,
         "/none": None,
         "/disconnected": Disconnected,
-        "/browser": Browser
+        "/browser": Browser,
+        "/clickgui-list-preview": PreviewPage
     };
 
     const SURFACE_TINT_MIX = 18;
