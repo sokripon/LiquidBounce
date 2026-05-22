@@ -1,17 +1,16 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
     import {itemTextureUrl} from "../../../../integration/rest";
 
-    const dispatch = createEventDispatcher<{
-        select: { value: string }
-    }>();
+    interface Props {
+        value: string;
+        name: string;
+        icon: string | undefined;
+        onselect: (detail: {value: string}) => void;
+    }
 
-    export let value: string;
-    export let name: string;
-    export let icon: string | undefined;
-    export let selected: boolean;
+    let {value, name, icon, onselect}: Props = $props();
 
-    let showingFallbackImage = false;
+    let showingFallbackImage = $state(false);
 
     function showFallbackIcon(event: Event) {
         const img = event.currentTarget as HTMLImageElement;
@@ -21,12 +20,12 @@
     }
 </script>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<div class="item" class:has-icon={icon !== undefined} class:selected
-     on:click={() => dispatch("select", {value})}>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class="item" class:has-icon={icon !== undefined}
+     onclick={() => onselect({value})}>
     {#if icon}
-        <img class="icon" class:fallback={showingFallbackImage} src="{icon}" alt={value} on:error={showFallbackIcon}/>
+        <img class="icon" class:fallback={showingFallbackImage} src={icon} alt={value} onerror={showFallbackIcon}/>
     {/if}
     <div class="name">{name}</div>
 </div>
@@ -45,10 +44,6 @@
 
     &.has-icon {
       grid-template-columns: max-content 1fr;
-    }
-
-    &.selected {
-      background-color: rgba(255, 255, 255, 0.1);
     }
 
     &:hover {

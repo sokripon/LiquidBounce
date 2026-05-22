@@ -1,26 +1,34 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
+    import {createEventDispatcher, onMount, untrack} from "svelte";
     import {slide} from "svelte/transition";
-    import type {ModuleSetting, NamedItem, RegistryMutableListSetting} from "../../../integration/types";
+    import type {
+        ModuleSetting,
+        NamedItem,
+        RegistryMutableListSetting
+    } from "../../../../integration/types";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../../theme/theme_config";
-    import VirtualList from "./VirtualList.svelte";
-    import SelectableListItem from "./SelectableListItem.svelte";
-    import ExpandArrow from "../common/ExpandArrow.svelte";
-    import {onMount} from "svelte";
     import {getRegistryItems} from "../../../../integration/rest";
     import {setItem} from "../../../../integration/persistent_storage";
+    import ExpandArrow from "../common/ExpandArrow.svelte";
+    import OrderedItemList from "./OrderedItemList.svelte";
+    import SearchableItemChooser from "./SearchableItemChooser.svelte";
 
-    export let setting: ModuleSetting;
+    interface Props {
+        setting: ModuleSetting;
+        path: string;
+    }
 
-    const cSetting = setting as RegistryMutableListSetting;
-    let items: NamedItem[] = [];
-    let allItems: NamedItem[] = [];
-    let expanded = localStorage.getItem(cSetting.key) === "true";
-    let searchQuery = "";
-    let renderedItems: NamedItem[] = [];
-    let showChooser = false;
+    let {setting = $bindable(), path}: Props = $props();
 
-    $: setItem(cSetting.key, expanded.toString());
+    const cSetting = $derived(setting as RegistryMutableListSetting);
+    const thisPath = $derived(`${path}.${cSetting.name}`);
+
+    // Boundary-compatible event for the legacy GenericSetting parent (`on:change`).
+    const dispatch = createEventDispatcher();
+
+    let allItems = $state<NamedItem[]>([]);
+    let expanded = $state(untrack(() => localStorage.getItem(thisPath) === "true"));
+    let showChooser = $state(false);
 
     onMount(async () => {
         const registryItems = await getRegistryItems(cSetting.registry);
@@ -29,116 +37,85 @@
                 value: identifier,
                 name: item.name,
                 icon: item.icon
-            })) as NamedItem[];
-        allItems = allItems
-        updateItems();
+            }) as NamedItem)
+            .sort((a, b) => a.value.localeCompare(b.value));
+
+        // Drop ids that are no longer in the registry (e.g. mod uninstalled).
+        // Without this, stale ids would occupy invisible positions in cSetting.value
+        // and silently break move() against neighbouring visible items.
+        const known = new Set(allItems.map(item => item.value));
+        const pruned = cSetting.value.filter(value => known.has(value));
+        if (pruned.length !== cSetting.value.length) {
+            commitChange(pruned);
+        }
     });
 
-    function updateItems() {
-        items = cSetting.value.map(id => allItems.find(item => item.value === id)).filter(Boolean) as NamedItem[];
-    }
+    $effect(() => {
+        setItem(thisPath, expanded.toString());
+    });
 
-    $: {
-        const searchWords = searchQuery.toLowerCase().trim().split(/\s+/).filter(word => word.length > 0);
-        let filteredItems = allItems.filter(item => {
-            if (cSetting.value.includes(item.value)) return false;
-            if (searchWords.length === 0) return true;
+    const itemsByValue = $derived(new Map(allItems.map(item => [item.value, item])));
 
-            const itemNameLower = item.name.toLowerCase();
-            return searchWords.every(word => itemNameLower.includes(word));
-        });
-        renderedItems = filteredItems;
-    }
+    const selectedItems = $derived(
+        cSetting.value
+            .map(id => itemsByValue.get(id))
+            .filter((item): item is NamedItem => item !== undefined)
+    );
 
-    const dispatch = createEventDispatcher();
+    const availableItems = $derived.by(() => {
+        const selected = new Set(cSetting.value);
+        return allItems.filter(item => !selected.has(item.value));
+    });
 
-    function handleChange() {
-        setting = { ...cSetting };
+    function commitChange(newValue: string[]) {
+        setting = {...cSetting, value: newValue};
         dispatch("change");
     }
 
-    function handleAdd(e: CustomEvent<{ value: string }>) {
-        cSetting.value = [...cSetting.value, e.detail.value];
+    function handleAdd(detail: {value: string}) {
+        commitChange([...cSetting.value, detail.value]);
         showChooser = false;
-        handleChange();
-        updateItems();
     }
 
-    function handleRemove(index: number) {
-        cSetting.value = cSetting.value.filter((_, i) => i !== index);
-        handleChange();
-        updateItems();
+    function handleRemove(value: string) {
+        commitChange(cSetting.value.filter(v => v !== value));
     }
 
-    function moveUp(index: number) {
-        if (index === 0) return;
+    function move(value: string, delta: number) {
+        const index = cSetting.value.indexOf(value);
+        const target = index + delta;
+        if (index < 0 || target < 0 || target >= cSetting.value.length) return;
         const newValue = [...cSetting.value];
-        [newValue[index - 1], newValue[index]] = [newValue[index], newValue[index - 1]];
-        cSetting.value = newValue;
-        handleChange();
-        updateItems();
+        [newValue[index], newValue[target]] = [newValue[target], newValue[index]];
+        commitChange(newValue);
     }
 
-    function moveDown(index: number) {
-        if (index === cSetting.value.length - 1) return;
-        const newValue = [...cSetting.value];
-        [newValue[index], newValue[index + 1]] = [newValue[index + 1], newValue[index]];
-        cSetting.value = newValue;
-        handleChange();
-        updateItems();
+    function toggleExpanded(event: Event) {
+        event.preventDefault();
+        expanded = !expanded;
     }
 </script>
 
 <div class="setting">
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="head" class:expanded on:contextmenu|preventDefault={() => expanded = !expanded} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') expanded = !expanded; }}>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="head" class:expanded oncontextmenu={toggleExpanded}>
         <div class="name">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</div>
         <ExpandArrow bind:expanded/>
     </div>
     {#if expanded}
         <div in:slide|global={{duration: 200, axis: "y"}} out:slide|global={{duration: 200, axis: "y"}}>
-            <div class="selected-items">
-                {#each items as item, index (item.value)}
-                    <div class="item-row">
-                        {#if item.icon}
-                            <img class="icon" src="{item.icon}" alt={item.value}/>
-                        {/if}
-                        <div class="name">{item.name}</div>
-                        <div class="controls">
-                            <div class="arrow-column">
-                                {#if index > 0}
-                                    <button class="arrow-btn" on:click={() => moveUp(index)} title="Move up">▲</button>
-                                {:else}
-                                    <span class="arrow-placeholder"></span>
-                                {/if}
-                                {#if index < items.length - 1}
-                                    <button class="arrow-btn" on:click={() => moveDown(index)} title="Move down">▼</button>
-                                {:else}
-                                    <span class="arrow-placeholder"></span>
-                                {/if}
-                            </div>
-                            <button class="remove-btn" on:click={() => handleRemove(index)} title="Remove">✕</button>
-                        </div>
-                    </div>
-                {/each}
-                <button class="add-btn" on:click={() => showChooser = !showChooser}>Add Item</button>
-            </div>
+            <OrderedItemList items={selectedItems}
+                             onmove={move}
+                             onremove={handleRemove}
+                             onadd={() => showChooser = !showChooser}/>
             {#if showChooser}
-                <div class="chooser">
-                    <input type="text" placeholder="Search" class="search-input" bind:value={searchQuery} spellcheck="false">
-                    <div class="results">
-                        <VirtualList items={renderedItems} let:item>
-                            <SelectableListItem value={item.value} name={item.name} icon={item.icon} selected={false} on:select={handleAdd}/>
-                        </VirtualList>
-                    </div>
-                </div>
+                <SearchableItemChooser items={availableItems} onselect={handleAdd}/>
             {/if}
         </div>
     {/if}
 </div>
 
 <style lang="scss">
-
     .setting {
         padding: 7px 0;
     }
@@ -158,113 +135,4 @@
             font-weight: 600;
         }
     }
-
-    .selected-items {
-        margin-bottom: 10px;
-
-        .item-row {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px;
-            background-color: color-mix(in srgb, var(--clickgui-base-color) 10%, transparent);
-            border-radius: 3px;
-            margin-bottom: 5px;
-
-            .icon {
-                height: 20px;
-                width: 20px;
-            }
-
-            .name {
-                flex: 1;
-                color: var(--clickgui-text-color);
-                font-size: 12px;
-            }
-
-            .controls {
-                display: flex;
-                align-items: center;
-                gap: 5px;
-            }
-
-            .arrow-column {
-                display: flex;
-                flex-direction: column;
-                gap: 2px;
-            }
-
-            .arrow-btn {
-                background: none;
-                border: none;
-                color: var(--accent-color);
-                cursor: pointer;
-                font-size: 14px;
-                padding: 0 5px;
-                line-height: 1;
-                transition: color 0.2s;
-
-                &:hover {
-                    color: color-mix(in srgb, var(--accent-color) 80%, white);
-                }
-            }
-
-            .arrow-placeholder {
-                display: block;
-                height: 14px;
-                width: 10px;
-                visibility: hidden;
-            }
-
-            .remove-btn {
-                background: none;
-                border: none;
-                color: #ff4444;
-                cursor: pointer;
-                font-size: 14px;
-                padding: 2px 5px;
-                transition: color 0.2s;
-
-                &:hover {
-                    color: #ff6666;
-                }
-            }
-        }
-
-        .add-btn {
-            width: 100%;
-            padding: 8px;
-            background-color: var(--accent-subtle-background-color);
-            border: none;
-            border-radius: 4px;
-            color: var(--clickgui-text-color);
-            cursor: pointer;
-            font-size: 12px;
-        }
-    }
-
-    .chooser {
-        .search-input {
-            width: 100%;
-            border: none;
-            border-bottom: solid 1px var(--accent-color);
-            font-family: "Inter", sans-serif;
-            font-size: 12px;
-            padding: 5px;
-            color: var(--clickgui-text-color);
-            margin-bottom: 5px;
-            background-color: var(--clickgui-input-background-color);
-        }
-
-        .results {
-            height: 150px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            min-height: 100px;
-            max-height: 300px;
-            position: relative;
-        }
-    }
 </style>
-
-
