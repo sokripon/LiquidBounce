@@ -9,6 +9,7 @@
     import {createDragReorder} from "../dragReorder.svelte";
 
     import {filterItems} from "../filterItems";
+    import {handleIconError} from "../iconFallback";
 
     interface Props {
         items: NamedItem[];
@@ -73,7 +74,7 @@
                 <span class="col-num">{index + 1}</span>
                 <span class="col-icon">
                     {#if item.icon}
-                        <img src={item.icon} alt=""/>
+                        <img src={item.icon} alt="" data-name={item.name} onerror={handleIconError}/>
                     {/if}
                 </span>
                 <span class="col-name" title={item.name}>{item.name}</span>
@@ -107,7 +108,7 @@
                     <button class="drow" onclick={() => pick(item.value)}>
                         <span class="col-icon">
                             {#if item.icon}
-                                <img src={item.icon} alt=""/>
+                                <img src={item.icon} alt="" data-name={item.name} onerror={handleIconError}/>
                             {/if}
                         </span>
                         <span class="col-name" title={item.name}>{item.name}</span>
