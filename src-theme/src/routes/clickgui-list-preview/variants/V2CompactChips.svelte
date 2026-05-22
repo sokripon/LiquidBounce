@@ -9,7 +9,7 @@
     import {createDragReorder} from "../dragReorder.svelte";
 
     import {filterItems} from "../filterItems";
-    import {handleIconError} from "../iconFallback";
+    import {handleIconError} from "../../../integration/iconFallback";
 
     interface Props {
         items: NamedItem[];
