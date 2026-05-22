@@ -8,18 +8,47 @@
     import type {NamedItem} from "../../../integration/types";
     import {createDragReorder} from "../dragReorder.svelte";
 
+    import {filterItems} from "../filterItems";
+
     interface Props {
         items: NamedItem[];
+        availableItems: NamedItem[];
         addLabel?: string;
         onmove: (value: string, delta: number) => void;
         onreorder: (fromIndex: number, toIndex: number) => void;
         onremove: (value: string) => void;
-        onadd: () => void;
+        onselect: (value: string) => void;
     }
 
-    let {items, addLabel = "Add Item", onmove, onreorder, onremove, onadd}: Props = $props();
+    let {items, availableItems, addLabel = "Add Item", onmove, onreorder, onremove, onselect}: Props = $props();
 
     const dnd = createDragReorder({onreorder, axis: "vertical"});
+
+    let chooserOpen = $state(false);
+    let query = $state("");
+    let inputEl = $state<HTMLInputElement>();
+    const filtered = $derived(filterItems(availableItems, query));
+
+    $effect(() => {
+        if (chooserOpen) inputEl?.focus();
+    });
+
+    function pick(value: string) {
+        onselect(value);
+        query = "";
+    }
+
+    function handleKey(e: KeyboardEvent) {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            chooserOpen = false;
+            query = "";
+        } else if (e.key === "Enter" && filtered.length > 0) {
+            e.preventDefault();
+            pick(filtered[0].value);
+        }
+    }
+
 </script>
 
 <div class="table">
@@ -59,7 +88,36 @@
             </div>
         {/each}
     </div>
-    <button class="add" onclick={onadd}>+ {addLabel}</button>
+    {#if chooserOpen}
+        <div class="trow add-row">
+            <span class="col-num">+</span>
+            <span class="col-icon"></span>
+            <input class="search col-name" type="text" placeholder="Search to add…"
+                   bind:this={inputEl} bind:value={query} onkeydown={handleKey}
+                   spellcheck="false"/>
+            <span class="col-actions">
+                <button class="ctrl remove" title="Close" onclick={() => { chooserOpen = false; query = ""; }}>×</button>
+            </span>
+        </div>
+        <div class="dropdown">
+            {#if filtered.length === 0}
+                <div class="empty">{availableItems.length === 0 ? "All items added" : "No matches"}</div>
+            {:else}
+                {#each filtered as item (item.value)}
+                    <button class="drow" onclick={() => pick(item.value)}>
+                        <span class="col-icon">
+                            {#if item.icon}
+                                <img src={item.icon} alt=""/>
+                            {/if}
+                        </span>
+                        <span class="col-name" title={item.name}>{item.name}</span>
+                    </button>
+                {/each}
+            {/if}
+        </div>
+    {:else}
+        <button class="add" onclick={() => { chooserOpen = true; }}>+ {addLabel}</button>
+    {/if}
 </div>
 
 <style lang="scss">
@@ -159,5 +217,73 @@
         transition: background 0.15s;
 
         &:hover { background: color-mix(in srgb, var(--accent-color) 18%, transparent); }
+    }
+
+    .add-row {
+        background: color-mix(in srgb, var(--accent-color) 10%, transparent);
+        cursor: text;
+
+        &:hover { background: color-mix(in srgb, var(--accent-color) 10%, transparent); }
+
+        .col-num {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+    }
+
+    .search {
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--clickgui-text-color);
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        padding: 0;
+        width: 100%;
+
+        &::placeholder { color: color-mix(in srgb, var(--clickgui-text-color) 50%, transparent); }
+    }
+
+    .dropdown {
+        max-height: 160px;
+        overflow-y: auto;
+        background: color-mix(in srgb, #000 30%, transparent);
+        border-top: 1px solid color-mix(in srgb, var(--accent-color) 18%, transparent);
+    }
+
+    .drow {
+        display: grid;
+        grid-template-columns: 28px 24px 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        font-size: 11px;
+        background: none;
+        border: none;
+        color: var(--clickgui-text-color);
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        transition: background 0.12s;
+
+        &::before {
+            content: "";
+        }
+
+        &:hover { background: color-mix(in srgb, var(--accent-color) 18%, transparent); }
+
+        img {
+            width: 18px;
+            height: 18px;
+            image-rendering: pixelated;
+            display: block;
+        }
+    }
+
+    .empty {
+        font-size: 11px;
+        opacity: 0.6;
+        padding: 8px;
+        text-align: center;
     }
 </style>

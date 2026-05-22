@@ -8,18 +8,47 @@
     import type {NamedItem} from "../../../integration/types";
     import {createDragReorder} from "../dragReorder.svelte";
 
+    import {filterItems} from "../filterItems";
+
     interface Props {
         items: NamedItem[];
+        availableItems: NamedItem[];
         addLabel?: string;
         onmove: (value: string, delta: number) => void;
         onreorder: (fromIndex: number, toIndex: number) => void;
         onremove: (value: string) => void;
-        onadd: () => void;
+        onselect: (value: string) => void;
     }
 
-    let {items, addLabel = "Add Item", onmove, onreorder, onremove, onadd}: Props = $props();
+    let {items, availableItems, addLabel = "Add Item", onmove, onreorder, onremove, onselect}: Props = $props();
 
     const dnd = createDragReorder({onreorder, axis: "horizontal"});
+
+    let chooserOpen = $state(false);
+    let query = $state("");
+    let inputEl = $state<HTMLInputElement>();
+    const filtered = $derived(filterItems(availableItems, query));
+
+    $effect(() => {
+        if (chooserOpen) inputEl?.focus();
+    });
+
+    function pick(value: string) {
+        onselect(value);
+        query = "";
+    }
+
+    function handleKey(e: KeyboardEvent) {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            chooserOpen = false;
+            query = "";
+        } else if (e.key === "Enter" && filtered.length > 0) {
+            e.preventDefault();
+            pick(filtered[0].value);
+        }
+    }
+
 </script>
 
 <div class="grid" role="list">
@@ -53,11 +82,46 @@
             </div>
         </div>
     {/each}
-    <button class="card add" onclick={onadd}>
+    <button class="card add" onclick={() => { chooserOpen = true; }}>
         <span class="plus">+</span>
         <span class="add-label">{addLabel}</span>
     </button>
 </div>
+{#if chooserOpen}
+    <div class="overlay"
+         role="button"
+         tabindex="-1"
+         aria-label="Close"
+         onclick={(e) => { if (e.target === e.currentTarget) { chooserOpen = false; query = ""; } }}
+         onkeydown={(e) => { if (e.key === "Escape") { chooserOpen = false; query = ""; } }}>
+        <div class="dialog" role="dialog" aria-label="Add item">
+            <div class="dialog-header">
+                <input class="search" type="text" placeholder="Search items…"
+                       bind:this={inputEl} bind:value={query} onkeydown={handleKey}
+                       spellcheck="false"/>
+                <button class="close" title="Close" onclick={() => { chooserOpen = false; query = ""; }}>×</button>
+            </div>
+            <div class="dialog-grid">
+                {#if filtered.length === 0}
+                    <div class="empty">{availableItems.length === 0 ? "All items added" : "No matches"}</div>
+                {:else}
+                    {#each filtered as item (item.value)}
+                        <button class="pick-card" onclick={() => pick(item.value)}>
+                            <div class="icon-wrap">
+                                {#if item.icon}
+                                    <img class="icon" src={item.icon} alt={item.name}/>
+                                {:else}
+                                    <span class="placeholder">?</span>
+                                {/if}
+                            </div>
+                            <div class="name" title={item.name}>{item.name}</div>
+                        </button>
+                    {/each}
+                {/if}
+            </div>
+        </div>
+    </div>
+{/if}
 
 <style lang="scss">
     .grid {
@@ -179,5 +243,110 @@
         .plus { font-size: 28px; line-height: 1; }
         .add-label { font-size: 10px; }
         &:hover { background: var(--clickgui-button-hover-background-color); }
+    }
+
+    .overlay {
+        position: fixed;
+        inset: 0;
+        background: color-mix(in srgb, #000 65%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: fade-in 0.12s ease-out;
+    }
+
+    @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .dialog {
+        width: min(640px, 90vw);
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        background: var(--clickgui-base-color, #1a1a22);
+        border: 1px solid color-mix(in srgb, var(--accent-color) 40%, transparent);
+        border-radius: 6px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+    }
+
+    .dialog-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 12px;
+        border-bottom: 1px solid color-mix(in srgb, var(--accent-color) 20%, transparent);
+    }
+
+    .search {
+        flex: 1;
+        background: color-mix(in srgb, #000 30%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent-color) 30%, transparent);
+        color: var(--clickgui-text-color);
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        padding: 6px 10px;
+        border-radius: 3px;
+        outline: none;
+
+        &:focus { border-color: var(--accent-color); }
+        &::placeholder { color: color-mix(in srgb, var(--clickgui-text-color) 50%, transparent); }
+    }
+
+    .close {
+        background: none;
+        border: none;
+        color: var(--clickgui-text-color);
+        font-size: 20px;
+        line-height: 1;
+        padding: 0 8px;
+        cursor: pointer;
+        opacity: 0.6;
+        transition: opacity 0.15s;
+
+        &:hover { opacity: 1; }
+    }
+
+    .dialog-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+        gap: 6px;
+        padding: 12px;
+        overflow-y: auto;
+    }
+
+    .pick-card {
+        background: color-mix(in srgb, var(--clickgui-base-color) 18%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent-color) 18%, transparent);
+        border-radius: 4px;
+        padding: 10px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        color: var(--clickgui-text-color);
+        transition: border-color 0.12s, background 0.12s, transform 0.08s;
+
+        &:hover {
+            border-color: var(--accent-color);
+            background: color-mix(in srgb, var(--accent-color) 12%, transparent);
+            transform: translateY(-1px);
+        }
+
+        .name {
+            font-size: 10px;
+        }
+    }
+
+    .empty {
+        grid-column: 1 / -1;
+        font-size: 12px;
+        opacity: 0.6;
+        padding: 20px;
+        text-align: center;
     }
 </style>

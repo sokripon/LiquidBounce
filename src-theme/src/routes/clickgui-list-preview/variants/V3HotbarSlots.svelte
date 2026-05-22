@@ -8,18 +8,47 @@
     import type {NamedItem} from "../../../integration/types";
     import {createDragReorder} from "../dragReorder.svelte";
 
+    import {filterItems} from "../filterItems";
+
     interface Props {
         items: NamedItem[];
+        availableItems: NamedItem[];
         addLabel?: string;
         onmove: (value: string, delta: number) => void;
         onreorder: (fromIndex: number, toIndex: number) => void;
         onremove: (value: string) => void;
-        onadd: () => void;
+        onselect: (value: string) => void;
     }
 
-    let {items, addLabel = "Add", onmove: _onmove, onreorder, onremove, onadd}: Props = $props();
+    let {items, availableItems, addLabel = "Add", onmove: _onmove, onreorder, onremove, onselect}: Props = $props();
 
     const dnd = createDragReorder({onreorder, axis: "horizontal"});
+
+    let chooserOpen = $state(false);
+    let query = $state("");
+    let inputEl = $state<HTMLInputElement>();
+    const filtered = $derived(filterItems(availableItems, query));
+
+    $effect(() => {
+        if (chooserOpen) inputEl?.focus();
+    });
+
+    function pick(value: string) {
+        onselect(value);
+        query = "";
+    }
+
+    function handleKey(e: KeyboardEvent) {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            chooserOpen = false;
+            query = "";
+        } else if (e.key === "Enter" && filtered.length > 0) {
+            e.preventDefault();
+            pick(filtered[0].value);
+        }
+    }
+
 </script>
 
 <div class="hotbar" role="list">
@@ -45,8 +74,33 @@
                     onclick={() => onremove(item.value)}>×</button>
         </div>
     {/each}
-    <button class="slot add" onclick={onadd} title={addLabel}>+</button>
+    <button class="slot add" onclick={() => { chooserOpen = !chooserOpen; }} title={addLabel} class:active={chooserOpen}>+</button>
 </div>
+{#if chooserOpen}
+    <div class="palette">
+        <div class="palette-header">
+            <input class="search" type="text" placeholder="Search items…"
+                   bind:this={inputEl} bind:value={query} onkeydown={handleKey}
+                   spellcheck="false"/>
+            <button class="close" title="Close" onclick={() => { chooserOpen = false; query = ""; }}>×</button>
+        </div>
+        <div class="palette-grid">
+            {#if filtered.length === 0}
+                <div class="empty">{availableItems.length === 0 ? "All items added" : "No matches"}</div>
+            {:else}
+                {#each filtered as item (item.value)}
+                    <button class="palette-slot" title={item.name} onclick={() => pick(item.value)}>
+                        {#if item.icon}
+                            <img class="icon" src={item.icon} alt={item.name}/>
+                        {:else}
+                            <span class="placeholder">?</span>
+                        {/if}
+                    </button>
+                {/each}
+            {/if}
+        </div>
+    </div>
+{/if}
 
 <style lang="scss">
     .hotbar {
@@ -133,5 +187,94 @@
         cursor: pointer;
 
         &:hover { background: var(--clickgui-button-hover-background-color); }
+        &.active {
+            background: color-mix(in srgb, var(--accent-color) 25%, var(--clickgui-button-background-color));
+            border-style: solid;
+            border-color: var(--accent-color);
+        }
+    }
+
+    .palette {
+        margin-top: 8px;
+        background: color-mix(in srgb, #000 35%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent-color) 20%, transparent);
+        border-radius: 4px;
+        padding: 6px;
+    }
+
+    .palette-header {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 6px;
+    }
+
+    .search {
+        flex: 1;
+        background: color-mix(in srgb, #000 55%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent-color) 30%, transparent);
+        color: var(--clickgui-text-color);
+        font-family: "Inter", sans-serif;
+        font-size: 12px;
+        padding: 4px 6px;
+        border-radius: 2px;
+        outline: none;
+
+        &:focus { border-color: var(--accent-color); }
+        &::placeholder { color: color-mix(in srgb, var(--clickgui-text-color) 50%, transparent); }
+    }
+
+    .close {
+        background: none;
+        border: none;
+        color: var(--clickgui-text-color);
+        font-size: 16px;
+        line-height: 1;
+        padding: 0 6px;
+        cursor: pointer;
+        opacity: 0.6;
+
+        &:hover { opacity: 1; }
+    }
+
+    .palette-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, 40px);
+        gap: 4px;
+        max-height: 160px;
+        overflow-y: auto;
+    }
+
+    .palette-slot {
+        width: 40px;
+        height: 40px;
+        background: color-mix(in srgb, #000 55%, transparent);
+        border: 2px solid color-mix(in srgb, var(--accent-color) 30%, transparent);
+        border-radius: 2px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: border-color 0.12s, transform 0.1s;
+
+        &:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-1px);
+        }
+
+        .icon {
+            width: 26px;
+            height: 26px;
+            image-rendering: pixelated;
+        }
+    }
+
+    .empty {
+        grid-column: 1 / -1;
+        font-size: 11px;
+        opacity: 0.6;
+        padding: 6px;
+        text-align: center;
     }
 </style>

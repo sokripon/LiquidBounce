@@ -15,6 +15,8 @@
     import V4CardGrid from "./variants/V4CardGrid.svelte";
     import V5CompactTable from "./variants/V5CompactTable.svelte";
 
+    type VariantComponent = typeof V1NumberedSteps;
+
     function makeSeed(): NamedItem[] {
         const ids = [
             ["minecraft:oak_planks", "Oak Planks"],
@@ -78,19 +80,28 @@
                     panel.items = [...panel.items, next];
                 }
             },
+            onselect(value: string) {
+                if (panel.items.some(i => i.value === value)) return;
+                const item = pool.find(p => p.value === value);
+                if (item) panel.items = [...panel.items, item];
+            },
             onreset() {
                 panel.items = makeSeed();
             },
         };
     }
 
-    const variants = [
-        {title: "Current — Stacked Rows", note: "Shipped baseline. Vertical rows, drag handle, arrow buttons.", component: OrderedItemList, panel: p0},
-        {title: "V1 — Numbered Steps", note: "Recipe-style timeline with badge ordinals and a connecting rail.", component: V1NumberedSteps, panel: p1},
-        {title: "V2 — Compact Chips", note: "Inline wrap-flow chips. Smallest footprint, scales to long lists.", component: V2CompactChips, panel: p2},
-        {title: "V3 — Hotbar Slots", note: "Minecraft hotbar feel. Icon-first, hover reveals remove.", component: V3HotbarSlots, panel: p3},
-        {title: "V4 — Card Grid", note: "Grid of cards. Icon prominent, controls in hover footer.", component: V4CardGrid, panel: p4},
-        {title: "V5 — Compact Table", note: "Dense table. Highest information density, power-user feel.", component: V5CompactTable, panel: p5},
+    function availableFor(panel: PanelState): NamedItem[] {
+        return pool.filter(p => !panel.items.some(i => i.value === p.value));
+    }
+
+    const variants: {title: string; note: string; component: VariantComponent | null; panel: PanelState; baseline: boolean}[] = [
+        {title: "Current — Stacked Rows", note: "Shipped baseline. Vertical rows, drag handle, arrow buttons.", component: null, panel: p0, baseline: true},
+        {title: "V1 — Numbered Steps", note: "Recipe-style timeline with badge ordinals and a connecting rail.", component: V1NumberedSteps, panel: p1, baseline: false},
+        {title: "V2 — Compact Chips", note: "Inline wrap-flow chips. Smallest footprint, scales to long lists.", component: V2CompactChips, panel: p2, baseline: false},
+        {title: "V3 — Hotbar Slots", note: "Minecraft hotbar feel. Icon-first, hover reveals remove.", component: V3HotbarSlots, panel: p3, baseline: false},
+        {title: "V4 — Card Grid", note: "Grid of cards. Icon prominent, controls in hover footer.", component: V4CardGrid, panel: p4, baseline: false},
+        {title: "V5 — Compact Table", note: "Dense table. Highest information density, power-user feel.", component: V5CompactTable, panel: p5, baseline: false},
     ];
 </script>
 
@@ -103,7 +114,6 @@
     <div class="grid">
         {#each variants as variant (variant.title)}
             {@const handlers = makeHandlers(variant.panel)}
-            {@const Component = variant.component}
             <section class="panel">
                 <header class="panel-header">
                     <div class="title-row">
@@ -113,12 +123,23 @@
                     <p class="note">{variant.note}</p>
                 </header>
                 <div class="panel-body">
-                    <Component
-                        items={variant.panel.items}
-                        onmove={handlers.onmove}
-                        onreorder={handlers.onreorder}
-                        onremove={handlers.onremove}
-                        onadd={handlers.onadd}/>
+                    {#if variant.baseline}
+                        <OrderedItemList
+                            items={variant.panel.items}
+                            onmove={handlers.onmove}
+                            onreorder={handlers.onreorder}
+                            onremove={handlers.onremove}
+                            onadd={handlers.onadd}/>
+                    {:else if variant.component}
+                        {@const Component = variant.component}
+                        <Component
+                            items={variant.panel.items}
+                            availableItems={availableFor(variant.panel)}
+                            onmove={handlers.onmove}
+                            onreorder={handlers.onreorder}
+                            onremove={handlers.onremove}
+                            onselect={handlers.onselect}/>
+                    {/if}
                 </div>
             </section>
         {/each}
