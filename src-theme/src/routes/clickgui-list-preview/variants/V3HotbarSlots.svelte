@@ -9,7 +9,6 @@
     import {createDragReorder} from "../dragReorder.svelte";
 
     import {filterItems} from "../filterItems";
-    import {handleIconError} from "../iconFallback";
 
     interface Props {
         items: NamedItem[];
@@ -67,7 +66,7 @@
              ondragend={dnd.handleDragEnd}>
             <span class="number">{index + 1}</span>
             {#if item.icon}
-                <img class="icon" src={item.icon} alt={item.name} data-name={item.name} onerror={handleIconError}/>
+                <img class="icon" src={item.icon} alt={item.name}/>
             {:else}
                 <span class="placeholder">?</span>
             {/if}
@@ -92,7 +91,7 @@
                 {#each filtered as item (item.value)}
                     <button class="palette-slot" title={item.name} onclick={() => pick(item.value)}>
                         {#if item.icon}
-                            <img class="icon" src={item.icon} alt={item.name} data-name={item.name} onerror={handleIconError}/>
+                            <img class="icon" src={item.icon} alt={item.name}/>
                         {:else}
                             <span class="placeholder">?</span>
                         {/if}
