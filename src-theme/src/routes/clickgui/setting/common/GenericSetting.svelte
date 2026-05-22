@@ -4,10 +4,7 @@
     import ChoiceSetting from "../ChoiceSetting.svelte";
     import ChooseSetting from "../ChooseSetting.svelte";
     import ConfigurableSetting from "../ConfigurableSetting.svelte";
-    import FloatRangeSetting from "../FloatRangeSetting.svelte";
-    import FloatSetting from "../FloatSetting.svelte";
-    import IntRangeSetting from "../IntRangeSetting.svelte";
-    import IntSetting from "../IntSetting.svelte";
+    import SliderSetting from "../SliderSetting.svelte";
     import TogglableSetting from "../TogglableSetting.svelte";
     import ColorSetting from "../ColorSetting.svelte";
     import TextSetting from "../TextSetting.svelte";
@@ -42,13 +39,13 @@
     {:else if setting.valueType === "TOGGLEABLE"}
         <TogglableSetting {path} bind:setting={setting} on:change/>
     {:else if setting.valueType === "INT"}
-        <IntSetting bind:setting={setting} on:change/>
+        <SliderSetting kind="int" mode="single" bind:setting={setting} on:change/>
     {:else if setting.valueType === "INT_RANGE"}
-        <IntRangeSetting bind:setting={setting} on:change/>
+        <SliderSetting kind="int" mode="range" bind:setting={setting} on:change/>
     {:else if setting.valueType === "FLOAT"}
-        <FloatSetting bind:setting={setting} on:change/>
+        <SliderSetting kind="float" mode="single" bind:setting={setting} on:change/>
     {:else if setting.valueType === "FLOAT_RANGE"}
-        <FloatRangeSetting bind:setting={setting} on:change/>
+        <SliderSetting kind="float" mode="range" bind:setting={setting} on:change/>
     {:else if setting.valueType === "CONFIGURABLE"}
         <ConfigurableSetting {path} bind:setting={setting} on:change/>
     {:else if setting.valueType === "COLOR"}
