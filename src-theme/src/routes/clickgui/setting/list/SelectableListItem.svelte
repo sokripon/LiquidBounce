@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {itemTextureUrl} from "../../../../integration/rest";
+    import ItemIcon from "./ItemIcon.svelte";
 
     interface Props {
         value: string;
@@ -9,15 +9,6 @@
     }
 
     let {value, name, icon, onselect}: Props = $props();
-
-    let showingFallbackImage = $state(false);
-
-    function showFallbackIcon(event: Event) {
-        const img = event.currentTarget as HTMLImageElement;
-
-        showingFallbackImage = true;
-        img.src = itemTextureUrl("minecraft:grass_block");
-    }
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -25,7 +16,7 @@
 <div class="item" class:has-icon={icon !== undefined}
      onclick={() => onselect({value})}>
     {#if icon}
-        <img class="icon" class:fallback={showingFallbackImage} src={icon} alt={value} onerror={showFallbackIcon}/>
+        <ItemIcon src={icon} alt={value} size={25}/>
     {/if}
     <div class="name">{name}</div>
 </div>
@@ -48,15 +39,6 @@
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.05);
-    }
-  }
-
-  .icon {
-    height: 25px;
-    width: 25px;
-
-    &.fallback {
-      filter: grayscale(1);
     }
   }
 

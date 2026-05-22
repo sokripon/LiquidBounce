@@ -1,14 +1,19 @@
 <script lang="ts">
-    import type {ModuleSetting, NamedItem, RegistryItem, RegistryListSetting} from "../../../../integration/types";
-    import GenericListSetting from "./GenericListSetting.svelte";
     import {onMount} from "svelte";
+    import type {ModuleSetting, NamedItem, RegistryListSetting} from "../../../../integration/types";
+    import GenericListSetting from "./GenericListSetting.svelte";
     import {getRegistryItems} from "../../../../integration/rest";
 
-    export let setting: ModuleSetting;
-    export let path: string;
+    interface Props {
+        setting: ModuleSetting;
+        path: string;
+    }
 
-    const cSetting = setting as RegistryListSetting;
-    let items: NamedItem[] = [];
+    let {setting = $bindable(), path}: Props = $props();
+
+    const cSetting = $derived(setting as RegistryListSetting);
+
+    let items = $state<NamedItem[]>([]);
 
     onMount(async () => {
         const registryItems = await getRegistryItems(cSetting.registry);
@@ -16,10 +21,10 @@
             .map(([identifier, item]) => ({
                 value: identifier,
                 name: item.name,
-                icon: item.icon
-            })) as NamedItem[];
-        items = items.sort((a, b) => a.value.localeCompare(b.value));
+                icon: item.icon,
+            } as NamedItem))
+            .sort((a, b) => a.value.localeCompare(b.value));
     });
 </script>
 
-<GenericListSetting {path} bind:setting={setting} {items} on:change />
+<GenericListSetting {path} bind:setting {items} on:change/>

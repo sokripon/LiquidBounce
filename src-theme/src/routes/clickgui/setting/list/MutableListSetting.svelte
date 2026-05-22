@@ -1,41 +1,50 @@
 <script lang="ts">
+    import {createEventDispatcher} from "svelte";
     import type {ListSetting, ModuleSetting} from "../../../../integration/types";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../../theme/theme_config";
-    import {createEventDispatcher} from "svelte";
 
-    export let setting: ModuleSetting;
+    interface Props {
+        setting: ModuleSetting;
+    }
 
-    const cSetting = setting as ListSetting;
+    let {setting = $bindable()}: Props = $props();
 
+    const cSetting = $derived(setting as ListSetting);
+
+    // Boundary-compatible event for the legacy GenericSetting parent (`on:change`).
     const dispatch = createEventDispatcher();
 
-    function handleChange() {
-        setting = {...cSetting};
+    function commit(newValue: string[]) {
+        setting = {...cSetting, value: newValue};
         dispatch("change");
     }
 
-    function removeValueIndex(index: number) {
-        cSetting.value.splice(index, 1);
-        cSetting.value = cSetting.value;
-        handleChange();
+    function updateAt(index: number, next: string) {
+        const newValue = [...cSetting.value];
+        newValue[index] = next;
+        commit(newValue);
     }
 
-    function addValueIndex() {
-        cSetting.value = ["", ...cSetting.value];
-        handleChange();
+    function removeAt(index: number) {
+        commit(cSetting.value.filter((_, i) => i !== index));
+    }
+
+    function addEmpty() {
+        commit(["", ...cSetting.value]);
     }
 </script>
 
 <div class="setting">
     <div class="name">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</div>
-    <button class="button-add" on:click={addValueIndex}>Add value</button>
+    <button class="button-add" onclick={addEmpty}>Add value</button>
     {#if cSetting.value.length > 0}
         <div class="inputs">
-            {#each cSetting.value as _, index}
+            {#each cSetting.value as value, index (index)}
                 <div class="input-wrapper">
-                    <input type="text" class="value" spellcheck="false" placeholder={setting.name} bind:value={cSetting.value[index]}
-                           on:input={handleChange}>
-                    <button class="button-remove" title="Remove" on:click={() => removeValueIndex(index)}>
+                    <input type="text" class="value" spellcheck="false" placeholder={cSetting.name}
+                           {value}
+                           oninput={(e) => updateAt(index, (e.currentTarget as HTMLInputElement).value)}>
+                    <button class="button-remove" title="Remove" onclick={() => removeAt(index)}>
                         <img src="img/clickgui/icon-cross.svg" alt="remove">
                     </button>
                 </div>

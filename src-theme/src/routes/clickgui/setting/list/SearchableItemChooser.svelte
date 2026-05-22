@@ -2,6 +2,7 @@
     import type {NamedItem} from "../../../../integration/types";
     import VirtualList from "./VirtualList.svelte";
     import SelectableListItem from "./SelectableListItem.svelte";
+    import {filterItems} from "./filterItems";
 
     interface Props {
         items: NamedItem[];
@@ -15,14 +16,7 @@
     let searchQuery = $state("");
     let searchInput = $state<HTMLInputElement>();
 
-    const filteredItems = $derived.by(() => {
-        const words = searchQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
-        if (words.length === 0) return items;
-        return items.filter(item => {
-            const nameLower = item.name.toLowerCase();
-            return words.every(word => nameLower.includes(word));
-        });
-    });
+    const filteredItems = $derived(filterItems(items, searchQuery));
 
     $effect(() => {
         searchInput?.focus();

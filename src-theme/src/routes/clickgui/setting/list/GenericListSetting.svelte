@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
+    import {createEventDispatcher, untrack} from "svelte";
     import {slide} from "svelte/transition";
     import type {ListSetting, ModuleSetting, NamedItem} from "../../../../integration/types";
     import VirtualList from "../list/VirtualList.svelte";
@@ -7,44 +7,48 @@
     import ExpandArrow from "../common/ExpandArrow.svelte";
     import {setItem} from "../../../../integration/persistent_storage";
     import ListItem from "./ListItem.svelte";
+    import {filterItems} from "./filterItems";
 
-    export let setting: ModuleSetting;
-    export let path: string;
-    export let items: NamedItem[];
-
-    const cSetting = setting as ListSetting;
-    const thisPath = `${path}.${cSetting.name}`;
-
-    const dispatch = createEventDispatcher();
-    let renderedItems: NamedItem[] = items;
-    let searchQuery = "";
-    let expanded = localStorage.getItem(thisPath) === "true";
-
-    $: setItem(thisPath, expanded.toString());
-
-    $: {
-        let filteredItems = items;
-        if (searchQuery) {
-            filteredItems = filteredItems.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()));
-        }
-        renderedItems = filteredItems;
+    interface Props {
+        setting: ModuleSetting;
+        path: string;
+        items: NamedItem[];
     }
 
-    function handleItemToggle(e: CustomEvent<{ value: string, enabled: boolean }>) {
-        if (e.detail.enabled) {
-            cSetting.value = [...cSetting.value, e.detail.value];
-        } else {
-            cSetting.value = cSetting.value.filter(b => b !== e.detail.value);
-        }
+    let {setting = $bindable(), path, items}: Props = $props();
 
-        setting = {...cSetting};
+    const cSetting = $derived(setting as ListSetting);
+    const thisPath = $derived(`${path}.${cSetting.name}`);
+
+    // Boundary-compatible event for the legacy GenericSetting parent (`on:change`).
+    const dispatch = createEventDispatcher();
+
+    let searchQuery = $state("");
+    let expanded = $state(untrack(() => localStorage.getItem(thisPath) === "true"));
+
+    $effect(() => {
+        setItem(thisPath, expanded.toString());
+    });
+
+    const renderedItems = $derived(filterItems(items, searchQuery));
+
+    function handleItemToggle(detail: {value: string; enabled: boolean}) {
+        const newValue = detail.enabled
+            ? [...cSetting.value, detail.value]
+            : cSetting.value.filter(b => b !== detail.value);
+        setting = {...cSetting, value: newValue};
         dispatch("change");
+    }
+
+    function toggleExpanded(event: Event) {
+        event.preventDefault();
+        expanded = !expanded;
     }
 </script>
 
 <div class="setting">
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="head" class:expanded on:contextmenu|preventDefault={() => expanded = !expanded}>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="head" class:expanded oncontextmenu={toggleExpanded}>
         <div class="name">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</div>
         <ExpandArrow bind:expanded/>
     </div>
@@ -54,7 +58,7 @@
             <div class="results">
                 <VirtualList items={renderedItems} let:item>
                     <ListItem value={item.value} name={item.name} icon={item.icon}
-                            enabled={cSetting.value.includes(item.value)} on:toggle={handleItemToggle}/>
+                            enabled={cSetting.value.includes(item.value)} ontoggle={handleItemToggle}/>
                 </VirtualList>
             </div>
         </div>

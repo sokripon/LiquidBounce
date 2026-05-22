@@ -1,32 +1,23 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
-    import {itemTextureUrl} from "../../../../integration/rest";
+    import ItemIcon from "./ItemIcon.svelte";
 
-    const dispatch = createEventDispatcher<{
-        toggle: { value: string, enabled: boolean }
-    }>();
-
-    export let value: string;
-    export let name: string;
-    export let icon: string | undefined;
-    export let enabled: boolean;
-
-    let showingFallbackImage = false;
-
-    function showFallbackIcon(event: Event) {
-        const img = event.currentTarget as HTMLImageElement;
-
-        showingFallbackImage = true;
-        img.src = itemTextureUrl("minecraft:grass_block");
+    interface Props {
+        value: string;
+        name: string;
+        icon: string | undefined;
+        enabled: boolean;
+        ontoggle: (detail: {value: string; enabled: boolean}) => void;
     }
+
+    let {value, name, icon, enabled, ontoggle}: Props = $props();
 </script>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div class="item" class:has-icon={icon !== undefined}
-     on:click={() => dispatch("toggle", {enabled: !enabled, value:value})}>
+     onclick={() => ontoggle({value, enabled: !enabled})}>
     {#if icon}
-        <img class="icon" class:fallback={showingFallbackImage} src="{icon}" alt={value} on:error={showFallbackIcon}/>
+        <ItemIcon src={icon} alt={value} size={25}/>
     {/if}
     <div class="name">{name}</div>
     <div class="tick">
@@ -39,7 +30,6 @@
 </div>
 
 <style lang="scss">
-
   .item {
     display: grid;
     grid-template-columns: 1fr max-content;
@@ -50,15 +40,6 @@
 
     &.has-icon {
       grid-template-columns: max-content 1fr max-content;
-    }
-  }
-
-  .icon {
-    height: 25px;
-    width: 25px;
-
-    &.fallback {
-      filter: grayscale(1);
     }
   }
 
