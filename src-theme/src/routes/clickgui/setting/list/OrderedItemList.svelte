@@ -1,6 +1,7 @@
 <script lang="ts">
     import type {NamedItem} from "../../../../integration/types";
     import {itemTextureUrl} from "../../../../integration/rest";
+    import {SvelteSet} from "svelte/reactivity";
 
     interface Props {
         items: NamedItem[];
@@ -12,10 +13,16 @@
 
     let {items, addLabel = "Add Item", onmove, onremove, onadd}: Props = $props();
 
-    function showFallbackIcon(event: Event) {
-        const img = event.currentTarget as HTMLImageElement;
-        img.style.filter = "grayscale(1)";
-        img.src = itemTextureUrl("minecraft:grass_block");
+    const fallbackIcons = new SvelteSet<string>();
+
+    function showFallbackIcon(value: string, event: Event) {
+        fallbackIcons.add(value);
+        (event.currentTarget as HTMLImageElement).src = itemTextureUrl("minecraft:grass_block");
+    }
+
+    function handleRemove(value: string) {
+        fallbackIcons.delete(value);
+        onremove(value);
     }
 </script>
 
@@ -23,7 +30,9 @@
     {#each items as item, index (item.value)}
         <div class="item-row">
             {#if item.icon}
-                <img class="icon" src={item.icon} alt={item.value} onerror={showFallbackIcon}/>
+                <img class="icon" class:fallback={fallbackIcons.has(item.value)}
+                     src={item.icon} alt={item.value}
+                     onerror={(event) => showFallbackIcon(item.value, event)}/>
             {/if}
             <div class="name">{item.name}</div>
             <div class="controls">
@@ -39,7 +48,7 @@
                         <span class="arrow-placeholder"></span>
                     {/if}
                 </div>
-                <button class="button-remove" title="Remove" onclick={() => onremove(item.value)}>
+                <button class="button-remove" title="Remove" onclick={() => handleRemove(item.value)}>
                     <img src="img/clickgui/icon-cross.svg" alt="remove">
                 </button>
             </div>
@@ -65,6 +74,10 @@
         .icon {
             height: 20px;
             width: 20px;
+
+            &.fallback {
+                filter: grayscale(1);
+            }
         }
 
         .name {
@@ -116,13 +129,19 @@
     }
 
     .add-btn {
-        width: 100%;
-        padding: 8px;
-        background-color: var(--accent-subtle-background-color);
-        border: none;
-        border-radius: 4px;
-        color: var(--clickgui-text-color);
-        cursor: pointer;
+        font-family: monospace;
         font-size: 12px;
+        color: var(--clickgui-text-color);
+        background-color: var(--clickgui-button-background-color);
+        border: none;
+        padding: 6px 10px;
+        border-radius: 3px;
+        width: 100%;
+        cursor: pointer;
+        transition: ease background-color .2s;
+
+        &:hover {
+            background-color: var(--clickgui-button-hover-background-color);
+        }
     }
 </style>

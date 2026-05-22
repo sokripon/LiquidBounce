@@ -5,6 +5,7 @@
     export let items;
     export let height = '100%';
     export let itemHeight = undefined;
+    export let resetScrollOnItemsChange = true;
     // read-only, but visible to consumers via bind:start
     export let start = 0;
     export let end = 0;
@@ -25,8 +26,16 @@
     // whenever `items` changes, invalidate the current heightmap
     $: if (mounted) refresh(items, viewport_height, itemHeight);
     async function refresh(items, viewport_height, itemHeight) {
-        const { scrollTop } = viewport;
+        let { scrollTop } = viewport;
         await tick(); // wait until the DOM is up to date
+        // If items shrank below current scroll window, reset to top to avoid a
+        // blank viewport (start/top would otherwise point past items.length).
+        if (start >= items.length) {
+            start = 0;
+            top = 0;
+            viewport.scrollTop = 0;
+            scrollTop = 0;
+        }
         let content_height = top - scrollTop;
         let i = start;
         while (content_height < viewport_height && i < items.length) {
@@ -47,7 +56,9 @@
         height_map.length = items.length;
 
         setTimeout(() => {
-            viewport.scrollTop = 0;
+            if (resetScrollOnItemsChange) {
+                viewport.scrollTop = 0;
+            }
         }, 100);
     }
     async function handle_scroll() {

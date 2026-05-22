@@ -7,11 +7,13 @@
         items: NamedItem[];
         placeholder?: string;
         onselect: (detail: {value: string}) => void;
+        onclose?: () => void;
     }
 
-    let {items, placeholder = "Search", onselect}: Props = $props();
+    let {items, placeholder = "Search", onselect, onclose}: Props = $props();
 
     let searchQuery = $state("");
+    let searchInput = $state<HTMLInputElement>();
 
     const filteredItems = $derived.by(() => {
         const words = searchQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
@@ -21,15 +23,32 @@
             return words.every(word => nameLower.includes(word));
         });
     });
+
+    $effect(() => {
+        searchInput?.focus();
+    });
+
+    function handleKeydown(event: KeyboardEvent) {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            onclose?.();
+        }
+    }
 </script>
 
 <div class="chooser">
     <input type="text" {placeholder} class="search-input"
-           bind:value={searchQuery} spellcheck="false">
+           bind:this={searchInput} bind:value={searchQuery}
+           onkeydown={handleKeydown}
+           spellcheck="false">
     <div class="results">
-        <VirtualList items={filteredItems} let:item>
-            <SelectableListItem value={item.value} name={item.name} icon={item.icon} {onselect}/>
-        </VirtualList>
+        {#if filteredItems.length === 0}
+            <div class="empty">{items.length === 0 ? "No items available" : "No matches"}</div>
+        {:else}
+            <VirtualList items={filteredItems} resetScrollOnItemsChange={false} let:item>
+                <SelectableListItem value={item.value} name={item.name} icon={item.icon} {onselect}/>
+            </VirtualList>
+        {/if}
     </div>
 </div>
 
@@ -48,12 +67,20 @@
         }
 
         .results {
-            height: 150px;
+            height: 200px;
             overflow-y: auto;
             overflow-x: hidden;
             min-height: 100px;
-            max-height: 300px;
+            max-height: 500px;
             position: relative;
+        }
+
+        .empty {
+            color: var(--clickgui-text-color);
+            font-size: 12px;
+            opacity: 0.6;
+            padding: 10px 5px;
+            text-align: center;
         }
     }
 </style>

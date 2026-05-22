@@ -74,7 +74,6 @@
 
     function handleAdd(detail: {value: string}) {
         commitChange([...cSetting.value, detail.value]);
-        showChooser = false;
     }
 
     function handleRemove(value: string) {
@@ -109,7 +108,9 @@
                              onremove={handleRemove}
                              onadd={() => showChooser = !showChooser}/>
             {#if showChooser}
-                <SearchableItemChooser items={availableItems} onselect={handleAdd}/>
+                <SearchableItemChooser items={availableItems}
+                                       onselect={handleAdd}
+                                       onclose={() => showChooser = false}/>
             {/if}
         </div>
     {/if}
