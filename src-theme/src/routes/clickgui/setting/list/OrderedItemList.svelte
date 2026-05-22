@@ -1,7 +1,6 @@
 <script lang="ts">
     import type {NamedItem} from "../../../../integration/types";
     import {itemTextureUrl} from "../../../../integration/rest";
-    import {handleIconError} from "../../../../integration/iconFallback";
     import {SvelteSet} from "svelte/reactivity";
 
     interface Props {
@@ -21,15 +20,8 @@
     let dropIndex = $state<number | null>(null);
 
     function showFallbackIcon(value: string, event: Event) {
-        const img = event.currentTarget as HTMLImageElement;
-        if (!fallbackIcons.has(value)) {
-            fallbackIcons.add(value);
-            img.src = itemTextureUrl("minecraft:grass_block");
-            return;
-        }
-        // grass_block 404'd too (e.g. when running outside the LiquidBounce
-        // client, like in `npm run dev`): fall through to an inline SVG.
-        handleIconError(event);
+        fallbackIcons.add(value);
+        (event.currentTarget as HTMLImageElement).src = itemTextureUrl("minecraft:grass_block");
     }
 
     function handleRemove(value: string) {
@@ -91,7 +83,7 @@
             <span class="drag-handle" aria-hidden="true">⋮⋮</span>
             {#if item.icon}
                 <img class="icon" class:fallback={fallbackIcons.has(item.value)}
-                     src={item.icon} alt={item.value} data-name={item.name}
+                     src={item.icon} alt={item.value}
                      onerror={(event) => showFallbackIcon(item.value, event)}/>
             {/if}
             <div class="name">{item.name}</div>
