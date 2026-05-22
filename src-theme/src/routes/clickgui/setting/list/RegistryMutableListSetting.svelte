@@ -89,6 +89,16 @@
         commitChange(newValue);
     }
 
+    function reorder(fromIndex: number, toIndex: number) {
+        if (fromIndex === toIndex) return;
+        if (fromIndex < 0 || fromIndex >= cSetting.value.length) return;
+        if (toIndex < 0 || toIndex >= cSetting.value.length) return;
+        const newValue = [...cSetting.value];
+        const [moved] = newValue.splice(fromIndex, 1);
+        newValue.splice(toIndex, 0, moved);
+        commitChange(newValue);
+    }
+
     function toggleExpanded(event: Event) {
         event.preventDefault();
         expanded = !expanded;
@@ -105,6 +115,7 @@
         <div in:slide|global={{duration: 200, axis: "y"}} out:slide|global={{duration: 200, axis: "y"}}>
             <OrderedItemList items={selectedItems}
                              onmove={move}
+                             onreorder={reorder}
                              onremove={handleRemove}
                              onadd={() => showChooser = !showChooser}/>
             {#if showChooser}
