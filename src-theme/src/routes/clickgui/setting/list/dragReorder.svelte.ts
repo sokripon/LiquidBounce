@@ -1,16 +1,38 @@
 /**
  * Reusable HTML5 drag-and-drop reorder helper for ordered item lists.
  *
- * Each variant constructs its own instance via `createDragReorder()` and binds
- * the returned handlers to its row elements. The instance exposes reactive
- * `draggingIndex` and `dropIndex` state so variants can render drop indicators.
+ * Each consumer constructs its own instance via `createDragReorder()` and
+ * either binds the individual handlers to row elements, or spreads
+ * `attrs(index)` plus `classesFor(index)` for a one-liner row root.
+ *
+ * The instance exposes reactive `draggingIndex` and `dropIndex` state so
+ * consumers can also render their own drop indicators.
  */
 export type Axis = "vertical" | "horizontal";
+
+export interface DragReorderHandle {
+    readonly draggingIndex: number | null;
+    readonly dropIndex: number | null;
+    handleDragStart: (index: number, event: DragEvent) => void;
+    handleDragOver: (index: number, event: DragEvent) => void;
+    handleDrop: (event: DragEvent) => void;
+    handleDragEnd: () => void;
+    /** Returns the space-joined set of active drop-indicator classes for a row at `index`. */
+    classesFor: (index: number) => string;
+    /** Returns the full set of DnD attributes for a draggable row at `index`. */
+    attrs: (index: number) => {
+        draggable: true;
+        ondragstart: (event: DragEvent) => void;
+        ondragover: (event: DragEvent) => void;
+        ondrop: (event: DragEvent) => void;
+        ondragend: () => void;
+    };
+}
 
 export function createDragReorder(opts: {
     onreorder: (fromIndex: number, toIndex: number) => void;
     axis?: Axis;
-}) {
+}): DragReorderHandle {
     const axis: Axis = opts.axis ?? "vertical";
 
     let draggingIndex = $state<number | null>(null);
@@ -56,6 +78,32 @@ export function createDragReorder(opts: {
         dropIndex = null;
     }
 
+    function classesFor(index: number): string {
+        const classes: string[] = [];
+        if (draggingIndex === index) classes.push("dragging");
+        if (
+            dropIndex === index &&
+            draggingIndex !== index &&
+            draggingIndex !== index - 1
+        ) classes.push("drop-before");
+        if (
+            dropIndex === index + 1 &&
+            draggingIndex !== index &&
+            draggingIndex !== index + 1
+        ) classes.push("drop-after");
+        return classes.join(" ");
+    }
+
+    function attrs(index: number) {
+        return {
+            draggable: true as const,
+            ondragstart: (event: DragEvent) => handleDragStart(index, event),
+            ondragover: (event: DragEvent) => handleDragOver(index, event),
+            ondrop: handleDrop,
+            ondragend: handleDragEnd,
+        };
+    }
+
     return {
         get draggingIndex() { return draggingIndex; },
         get dropIndex() { return dropIndex; },
@@ -63,5 +111,7 @@ export function createDragReorder(opts: {
         handleDragOver,
         handleDrop,
         handleDragEnd,
+        classesFor,
+        attrs,
     };
 }

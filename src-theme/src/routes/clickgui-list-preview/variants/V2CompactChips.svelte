@@ -6,9 +6,9 @@
 -->
 <script lang="ts">
     import type {NamedItem} from "../../../integration/types";
-    import {createDragReorder} from "../dragReorder.svelte";
-
-    import {filterItems} from "../filterItems";
+    import {createDragReorder} from "../../clickgui/setting/list/dragReorder.svelte";
+    import {createItemChooser} from "../../clickgui/setting/list/itemChooser.svelte";
+    import ItemIcon from "../../clickgui/setting/list/ItemIcon.svelte";
 
     interface Props {
         items: NamedItem[];
@@ -21,79 +21,56 @@
     }
 
     let {items, availableItems, addLabel = "Add", onmove: _onmove, onreorder, onremove, onselect}: Props = $props();
-    // onmove intentionally unused — chips rely on DnD only; keyboard order
-    // changes go via the surrounding context if needed.
+    // onmove intentionally unused — chips rely on DnD only.
 
     const dnd = createDragReorder({onreorder, axis: "horizontal"});
-
-    let chooserOpen = $state(false);
-    let query = $state("");
-    let inputEl = $state<HTMLInputElement>();
-    const filtered = $derived(filterItems(availableItems, query));
-
-    $effect(() => {
-        if (chooserOpen) inputEl?.focus();
+    let inputEl: HTMLInputElement | undefined = $state();
+    const chooser = createItemChooser({
+        availableItems: () => availableItems,
+        inputEl: () => inputEl,
+        onselect,
+        emptyAllAdded: "No more items to add",
     });
-
-    function pick(value: string) {
-        onselect(value);
-        query = "";
-    }
-
-    function handleKey(e: KeyboardEvent) {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            chooserOpen = false;
-            query = "";
-        } else if (e.key === "Enter" && filtered.length > 0) {
-            e.preventDefault();
-            pick(filtered[0].value);
-        }
-    }
 
 </script>
 
 <div class="chips" role="list">
     {#each items as item, index (item.value)}
-        <div class="chip"
+        <div class="chip {dnd.classesFor(index)}"
              role="listitem"
-             class:dragging={dnd.draggingIndex === index}
-             class:drop-before={dnd.dropIndex === index && dnd.draggingIndex !== index && dnd.draggingIndex !== index - 1}
-             class:drop-after={dnd.dropIndex === index + 1 && dnd.draggingIndex !== index && dnd.draggingIndex !== index + 1}
-             draggable="true"
-             ondragstart={(e) => dnd.handleDragStart(index, e)}
-             ondragover={(e) => dnd.handleDragOver(index, e)}
-             ondrop={dnd.handleDrop}
-             ondragend={dnd.handleDragEnd}>
+             {...dnd.attrs(index)}>
             <span class="ordinal">{index + 1}</span>
             {#if item.icon}
-                <img class="icon" src={item.icon} alt=""/>
+                <ItemIcon src={item.icon} size={14}/>
             {/if}
             <span class="name">{item.name}</span>
             <button class="remove" title="Remove" onclick={() => onremove(item.value)}>×</button>
         </div>
     {/each}
-    {#if chooserOpen}
+    {#if chooser.open}
         <div class="chip search-chip" role="listitem">
             <span class="ordinal">+</span>
             <input class="search" type="text" placeholder="Search…"
-                   bind:this={inputEl} bind:value={query} onkeydown={handleKey}
+                   bind:this={inputEl}
+                   value={chooser.query}
+                   oninput={(e) => chooser.setQuery(e.currentTarget.value)}
+                   onkeydown={chooser.handleKey}
                    spellcheck="false"/>
-            <button class="remove" title="Close" onclick={() => { chooserOpen = false; query = ""; }}>×</button>
+            <button class="remove" title="Close" onclick={chooser.hide}>×</button>
         </div>
     {:else}
-        <button class="add" onclick={() => { chooserOpen = true; }} title={addLabel}>+</button>
+        <button class="add" onclick={chooser.show} title={addLabel}>+</button>
     {/if}
 </div>
-{#if chooserOpen}
+{#if chooser.open}
     <div class="suggestions">
-        {#if filtered.length === 0}
-            <div class="empty">{availableItems.length === 0 ? "All items added" : "No matches"}</div>
+        {#if chooser.filtered.length === 0}
+            <div class="empty">{chooser.emptyMessage}</div>
         {:else}
-            {#each filtered as item (item.value)}
-                <button class="suggest" onclick={() => pick(item.value)}>
+            {#each chooser.filtered as item (item.value)}
+                <button class="suggest" onclick={() => chooser.pick(item.value)}>
                     {#if item.icon}
-                        <img class="icon" src={item.icon} alt=""/>
+                        <ItemIcon src={item.icon} size={14}/>
                     {/if}
                     <span class="name">{item.name}</span>
                 </button>
@@ -241,12 +218,6 @@
 
         &:hover {
             background-color: var(--clickgui-button-hover-background-color);
-        }
-
-        .icon {
-            width: 14px;
-            height: 14px;
-            image-rendering: pixelated;
         }
     }
 

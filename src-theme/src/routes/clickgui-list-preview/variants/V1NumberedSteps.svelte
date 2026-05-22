@@ -6,9 +6,9 @@
 -->
 <script lang="ts">
     import type {NamedItem} from "../../../integration/types";
-    import {createDragReorder} from "../dragReorder.svelte";
-
-    import {filterItems} from "../filterItems";
+    import {createDragReorder} from "../../clickgui/setting/list/dragReorder.svelte";
+    import {createItemChooser} from "../../clickgui/setting/list/itemChooser.svelte";
+    import ItemIcon from "../../clickgui/setting/list/ItemIcon.svelte";
 
     interface Props {
         items: NamedItem[];
@@ -23,49 +23,23 @@
     let {items, availableItems, addLabel = "Add Step", onmove, onreorder, onremove, onselect}: Props = $props();
 
     const dnd = createDragReorder({onreorder, axis: "vertical"});
-
-    let chooserOpen = $state(false);
-    let query = $state("");
-    let inputEl = $state<HTMLInputElement>();
-    const filtered = $derived(filterItems(availableItems, query));
-
-    $effect(() => {
-        if (chooserOpen) inputEl?.focus();
+    let inputEl: HTMLInputElement | undefined = $state();
+    const chooser = createItemChooser({
+        availableItems: () => availableItems,
+        inputEl: () => inputEl,
+        onselect,
     });
-
-    function pick(value: string) {
-        onselect(value);
-        query = "";
-    }
-
-    function handleKey(e: KeyboardEvent) {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            chooserOpen = false;
-            query = "";
-        } else if (e.key === "Enter" && filtered.length > 0) {
-            e.preventDefault();
-            pick(filtered[0].value);
-        }
-    }
 </script>
 
 <div class="steps" role="list">
     {#each items as item, index (item.value)}
-        <div class="step"
+        <div class="step {dnd.classesFor(index)}"
              role="listitem"
-             class:dragging={dnd.draggingIndex === index}
-             class:drop-before={dnd.dropIndex === index && dnd.draggingIndex !== index && dnd.draggingIndex !== index - 1}
-             class:drop-after={dnd.dropIndex === index + 1 && dnd.draggingIndex !== index && dnd.draggingIndex !== index + 1}
-             draggable="true"
-             ondragstart={(e) => dnd.handleDragStart(index, e)}
-             ondragover={(e) => dnd.handleDragOver(index, e)}
-             ondrop={dnd.handleDrop}
-             ondragend={dnd.handleDragEnd}>
+             {...dnd.attrs(index)}>
             <div class="badge">{index + 1}</div>
             <div class="body">
                 {#if item.icon}
-                    <img class="icon" src={item.icon} alt=""/>
+                    <ItemIcon src={item.icon} size={22}/>
                 {/if}
                 <span class="name">{item.name}</span>
                 <div class="controls">
@@ -79,24 +53,27 @@
             </div>
         </div>
     {/each}
-    {#if chooserOpen}
+    {#if chooser.open}
         <div class="step ghost" role="listitem">
             <div class="badge ghost-badge">{items.length + 1}</div>
             <div class="body chooser-body">
                 <input class="search" type="text" placeholder="Search to add a step…"
-                       bind:this={inputEl} bind:value={query} onkeydown={handleKey}
+                       bind:this={inputEl}
+                       value={chooser.query}
+                       oninput={(e) => chooser.setQuery(e.currentTarget.value)}
+                       onkeydown={chooser.handleKey}
                        spellcheck="false"/>
-                <button class="ctrl" title="Close" onclick={() => { chooserOpen = false; query = ""; }}>×</button>
+                <button class="ctrl" title="Close" onclick={chooser.hide}>×</button>
             </div>
         </div>
-        {#if filtered.length === 0}
-            <div class="empty">{availableItems.length === 0 ? "All items added" : "No matches"}</div>
+        {#if chooser.filtered.length === 0}
+            <div class="empty">{chooser.emptyMessage}</div>
         {:else}
             <div class="results">
-                {#each filtered as item (item.value)}
-                    <button class="result" onclick={() => pick(item.value)}>
+                {#each chooser.filtered as item (item.value)}
+                    <button class="result" onclick={() => chooser.pick(item.value)}>
                         {#if item.icon}
-                            <img class="icon" src={item.icon} alt=""/>
+                            <ItemIcon src={item.icon} size={22}/>
                         {/if}
                         <span class="name">{item.name}</span>
                     </button>
@@ -104,7 +81,7 @@
             </div>
         {/if}
     {:else}
-        <button class="add" onclick={() => { chooserOpen = true; }}>+ {addLabel}</button>
+        <button class="add" onclick={chooser.show}>+ {addLabel}</button>
     {/if}
 </div>
 
@@ -131,7 +108,6 @@
         &.drop-before { border-top-color: var(--accent-color); }
         &.drop-after { border-bottom-color: var(--accent-color); }
 
-        // connecting rail
         &::before {
             content: "";
             position: absolute;
@@ -168,12 +144,6 @@
         background: color-mix(in srgb, var(--clickgui-base-color) 12%, transparent);
         border-radius: 4px;
         border: 1px solid color-mix(in srgb, var(--accent-color) 15%, transparent);
-    }
-
-    .icon {
-        width: 22px;
-        height: 22px;
-        image-rendering: pixelated;
     }
 
     .name {
@@ -283,7 +253,7 @@
     .empty {
         margin-left: 34px;
         font-size: 11px;
-        opacity: 0.6;
+        color: var(--clickgui-text-dimmed-color);
         padding: 6px 4px;
     }
 </style>

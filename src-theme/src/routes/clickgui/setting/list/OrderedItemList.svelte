@@ -1,7 +1,7 @@
 <script lang="ts">
     import type {NamedItem} from "../../../../integration/types";
-    import {itemTextureUrl} from "../../../../integration/rest";
-    import {SvelteSet} from "svelte/reactivity";
+    import {createDragReorder} from "./dragReorder.svelte";
+    import ItemIcon from "./ItemIcon.svelte";
 
     interface Props {
         items: NamedItem[];
@@ -14,77 +14,17 @@
 
     let {items, addLabel = "Add Item", onmove, onreorder, onremove, onadd}: Props = $props();
 
-    const fallbackIcons = new SvelteSet<string>();
-
-    let draggingIndex = $state<number | null>(null);
-    let dropIndex = $state<number | null>(null);
-
-    function showFallbackIcon(value: string, event: Event) {
-        fallbackIcons.add(value);
-        (event.currentTarget as HTMLImageElement).src = itemTextureUrl("minecraft:grass_block");
-    }
-
-    function handleRemove(value: string) {
-        fallbackIcons.delete(value);
-        onremove(value);
-    }
-
-    function handleDragStart(index: number, event: DragEvent) {
-        draggingIndex = index;
-        if (event.dataTransfer) {
-            event.dataTransfer.effectAllowed = "move";
-            // Required by Firefox to initiate a drag.
-            event.dataTransfer.setData("text/plain", String(index));
-        }
-    }
-
-    function handleDragOver(index: number, event: DragEvent) {
-        if (draggingIndex === null) return;
-        event.preventDefault();
-        if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
-        const target = event.currentTarget as HTMLElement;
-        const {top, height} = target.getBoundingClientRect();
-        const after = event.clientY > top + height / 2;
-        dropIndex = after ? index + 1 : index;
-    }
-
-    function handleDrop(event: DragEvent) {
-        event.preventDefault();
-        if (draggingIndex !== null && dropIndex !== null) {
-            // When dragging down, the slice after the removed item shifts left by one.
-            let target = dropIndex;
-            if (target > draggingIndex) target -= 1;
-            if (target !== draggingIndex) {
-                onreorder(draggingIndex, target);
-            }
-        }
-        draggingIndex = null;
-        dropIndex = null;
-    }
-
-    function handleDragEnd() {
-        draggingIndex = null;
-        dropIndex = null;
-    }
+    const dnd = createDragReorder({onreorder, axis: "vertical"});
 </script>
 
 <div class="ordered-list" role="list">
     {#each items as item, index (item.value)}
-        <div class="item-row"
+        <div class="item-row {dnd.classesFor(index)}"
              role="listitem"
-             class:dragging={draggingIndex === index}
-             class:drop-before={dropIndex === index && draggingIndex !== index && draggingIndex !== index - 1}
-             class:drop-after={dropIndex === index + 1 && draggingIndex !== index && draggingIndex !== index + 1}
-             draggable="true"
-             ondragstart={(event) => handleDragStart(index, event)}
-             ondragover={(event) => handleDragOver(index, event)}
-             ondrop={handleDrop}
-             ondragend={handleDragEnd}>
+             {...dnd.attrs(index)}>
             <span class="drag-handle" aria-hidden="true">⋮⋮</span>
             {#if item.icon}
-                <img class="icon" class:fallback={fallbackIcons.has(item.value)}
-                     src={item.icon} alt={item.value}
-                     onerror={(event) => showFallbackIcon(item.value, event)}/>
+                <ItemIcon src={item.icon} alt={item.value} size={20}/>
             {/if}
             <div class="name">{item.name}</div>
             <div class="controls">
@@ -100,7 +40,7 @@
                         <span class="arrow-placeholder"></span>
                     {/if}
                 </div>
-                <button class="button-remove" title="Remove" onclick={() => handleRemove(item.value)}>
+                <button class="button-remove" title="Remove" onclick={() => onremove(item.value)}>
                     <img src="img/clickgui/icon-cross.svg" alt="remove">
                 </button>
             </div>
@@ -150,15 +90,6 @@
             letter-spacing: -2px;
             user-select: none;
             padding: 0 2px;
-        }
-
-        .icon {
-            height: 20px;
-            width: 20px;
-
-            &.fallback {
-                filter: grayscale(1);
-            }
         }
 
         .name {
