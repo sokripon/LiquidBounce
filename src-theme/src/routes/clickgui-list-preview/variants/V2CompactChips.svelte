@@ -162,7 +162,7 @@
     .remove {
         background: none;
         border: none;
-        color: color-mix(in srgb, var(--clickgui-text-color) 60%, transparent);
+        color: var(--clickgui-text-dimmed-color);
         cursor: pointer;
         font-size: 14px;
         line-height: 1;
@@ -171,29 +171,31 @@
         transition: color 0.15s, background 0.15s;
 
         &:hover {
-            color: #ff8a80;
-            background: color-mix(in srgb, #ff8a80 18%, transparent);
+            color: var(--clickgui-selection-chip-remove-color);
+            background: var(--clickgui-selection-chip-remove-background-color);
         }
     }
 
     .add {
-        background: var(--clickgui-button-background-color);
+        background-color: var(--clickgui-button-background-color);
         color: var(--accent-color);
-        border: 1px dashed color-mix(in srgb, var(--accent-color) 40%, transparent);
+        border: none;
         border-radius: 999px;
         width: 24px;
         height: 24px;
         cursor: pointer;
         font-size: 14px;
         line-height: 1;
-        transition: background 0.15s;
+        transition: background-color 0.2s ease;
 
-        &:hover { background: var(--clickgui-button-hover-background-color); }
+        &:hover { background-color: var(--clickgui-button-hover-background-color); }
     }
 
     .search-chip {
-        background: color-mix(in srgb, var(--accent-color) 18%, var(--clickgui-base-color));
-        border-color: var(--accent-color);
+        background-color: var(--clickgui-input-background-color);
+        border: none;
+        border-bottom: 1px solid var(--accent-color);
+        border-radius: 3px;
         cursor: text;
         padding: 3px 4px 3px 6px;
     }
@@ -208,7 +210,7 @@
         width: 110px;
         padding: 0;
 
-        &::placeholder { color: color-mix(in srgb, var(--clickgui-text-color) 50%, transparent); }
+        &::placeholder { color: var(--clickgui-text-dimmed-color); }
     }
 
     .suggestions {
@@ -217,9 +219,9 @@
         gap: 4px;
         margin-top: 6px;
         padding: 6px;
-        background: color-mix(in srgb, var(--clickgui-base-color) 60%, transparent);
-        border: 1px solid color-mix(in srgb, var(--accent-color) 15%, transparent);
-        border-radius: 4px;
+        background-color: var(--clickgui-input-background-color);
+        border-bottom: 1px solid var(--accent-color);
+        border-radius: 3px;
         max-height: 140px;
         overflow-y: auto;
     }
@@ -229,17 +231,16 @@
         align-items: center;
         gap: 5px;
         padding: 3px 8px;
-        background: var(--clickgui-button-background-color);
-        border: 1px solid color-mix(in srgb, var(--accent-color) 20%, transparent);
+        background-color: var(--clickgui-button-background-color);
+        border: none;
         border-radius: 999px;
         cursor: pointer;
         font-size: 11px;
         color: var(--clickgui-text-color);
-        transition: background 0.15s, border-color 0.15s;
+        transition: background-color 0.2s ease;
 
         &:hover {
-            background: color-mix(in srgb, var(--accent-color) 25%, var(--clickgui-button-background-color));
-            border-color: var(--accent-color);
+            background-color: var(--clickgui-button-hover-background-color);
         }
 
         .icon {
@@ -251,7 +252,7 @@
 
     .empty {
         font-size: 11px;
-        opacity: 0.6;
+        color: var(--clickgui-text-dimmed-color);
         padding: 4px;
         width: 100%;
         text-align: center;

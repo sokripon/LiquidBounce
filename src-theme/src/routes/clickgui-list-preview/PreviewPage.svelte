@@ -105,53 +105,58 @@
     ];
 </script>
 
-<div class="preview">
-    <header class="page-header">
-        <h1>OrderedItemList — Variant Preview</h1>
-        <p>Each panel is independent. Drag rows, click controls, add and remove — state is local to its panel.</p>
-    </header>
+<div class="page">
+    <div class="window">
+        <header class="window-header">
+            <div class="title-text">AutoCrafter <span class="separator">›</span> OrderedItemList Variant Preview</div>
+            <div class="title-meta">Each section is independent — drag, reorder, add and remove without affecting the others.</div>
+        </header>
 
-    <div class="grid">
-        {#each variants as variant (variant.title)}
-            {@const handlers = makeHandlers(variant.panel)}
-            <section class="panel">
-                <header class="panel-header">
-                    <div class="title-row">
-                        <h2>{variant.title}</h2>
-                        <button class="reset" onclick={handlers.onreset} title="Reset this panel">Reset</button>
+        <div class="window-body">
+            {#each variants as variant, idx (variant.title)}
+                {@const handlers = makeHandlers(variant.panel)}
+                <section class="setting-section" class:first={idx === 0}>
+                    <div class="setting-head">
+                        <div class="setting-label">
+                            <span class="setting-name">{variant.title}</span>
+                            {#if variant.baseline}
+                                <span class="badge-baseline">Baseline</span>
+                            {/if}
+                        </div>
+                        <button class="reset" onclick={handlers.onreset} title="Reset this section">Reset</button>
                     </div>
-                    <p class="note">{variant.note}</p>
-                </header>
-                <div class="panel-body">
-                    {#if variant.baseline}
-                        <OrderedItemList
-                            items={variant.panel.items}
-                            onmove={handlers.onmove}
-                            onreorder={handlers.onreorder}
-                            onremove={handlers.onremove}
-                            onadd={handlers.onadd}/>
-                    {:else if variant.component}
-                        {@const Component = variant.component}
-                        <Component
-                            items={variant.panel.items}
-                            availableItems={availableFor(variant.panel)}
-                            onmove={handlers.onmove}
-                            onreorder={handlers.onreorder}
-                            onremove={handlers.onremove}
-                            onselect={handlers.onselect}/>
-                    {/if}
-                </div>
-            </section>
-        {/each}
+                    <div class="setting-note">{variant.note}</div>
+                    <div class="setting-body">
+                        {#if variant.baseline}
+                            <OrderedItemList
+                                items={variant.panel.items}
+                                onmove={handlers.onmove}
+                                onreorder={handlers.onreorder}
+                                onremove={handlers.onremove}
+                                onadd={handlers.onadd}/>
+                        {:else if variant.component}
+                            {@const Component = variant.component}
+                            <Component
+                                items={variant.panel.items}
+                                availableItems={availableFor(variant.panel)}
+                                onmove={handlers.onmove}
+                                onreorder={handlers.onreorder}
+                                onremove={handlers.onremove}
+                                onselect={handlers.onselect}/>
+                        {/if}
+                    </div>
+                </section>
+            {/each}
+        </div>
     </div>
 </div>
 
 <style lang="scss">
     $grid-size: 10px;
 
-    .preview {
+    .page {
         min-height: 100vh;
-        padding: 24px;
+        padding: 40px 24px 60px;
         background-color: var(--clickgui-overlay-background-color);
         background-image:
             linear-gradient(to right, var(--clickgui-grid-color) 1px, transparent 1px),
@@ -159,69 +164,89 @@
         background-size: $grid-size $grid-size;
         color: var(--clickgui-text-color);
         font-family: "Inter", sans-serif;
+        display: flex;
+        justify-content: center;
     }
 
-    .page-header {
-        max-width: 1400px;
-        margin: 0 auto 20px;
-
-        h1 {
-            font-size: 16px;
-            font-weight: 600;
-            margin: 0 0 4px;
-            color: var(--clickgui-text-color);
-            border-bottom: 2px solid var(--accent-color);
-            padding-bottom: 8px;
-        }
-
-        p {
-            font-size: 13px;
-            color: var(--clickgui-text-dimmed-color);
-            margin: 8px 0 0;
-        }
-    }
-
-    .grid {
-        max-width: 1400px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-        gap: 16px;
-    }
-
-    .panel {
+    .window {
+        width: min(900px, 100%);
         background-color: var(--clickgui-window-background-color);
         border-radius: 5px;
         box-shadow: 0 0 10px var(--clickgui-window-shadow-color);
         overflow: hidden;
-        display: flex;
-        flex-direction: column;
+        height: max-content;
     }
 
-    .panel-header {
+    .window-header {
         background-color: var(--clickgui-window-header-background-color);
         border-bottom: 2px solid var(--clickgui-window-header-border-color);
-        padding: 12px 16px;
+        padding: 16px 22px;
     }
 
-    .title-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-    }
-
-    h2 {
-        font-size: 14px;
+    .title-text {
+        font-size: 16px;
         font-weight: 600;
-        margin: 0;
         color: var(--clickgui-text-color);
     }
 
-    .note {
+    .separator {
+        color: var(--accent-color);
+        margin: 0 6px;
+    }
+
+    .title-meta {
         font-size: 11px;
         color: var(--clickgui-text-dimmed-color);
-        margin: 4px 0 0;
+        margin-top: 4px;
+    }
+
+    .window-body {
+        padding: 4px 22px 16px;
+    }
+
+    .setting-section {
+        padding: 14px 0;
+        border-top: 1px solid var(--clickgui-base-30-color);
+
+        &.first {
+            border-top: none;
+        }
+    }
+
+    .setting-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .setting-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .setting-name {
+        font-weight: 500;
+        color: var(--clickgui-text-color);
+        font-size: 12px;
+    }
+
+    .badge-baseline {
+        font-family: monospace;
+        font-size: 10px;
+        color: var(--accent-color);
+        background-color: var(--clickgui-base-30-color);
+        border: 1px solid var(--accent-color);
+        border-radius: 2px;
+        padding: 1px 5px;
+        line-height: 1.4;
+    }
+
+    .setting-note {
+        font-size: 11px;
+        color: var(--clickgui-text-dimmed-color);
+        margin: 3px 0 8px;
     }
 
     .reset {
@@ -231,7 +256,7 @@
         background-color: var(--clickgui-button-background-color);
         border: none;
         border-radius: 3px;
-        padding: 4px 8px;
+        padding: 4px 10px;
         cursor: pointer;
         transition: background-color 0.2s ease;
 
@@ -240,9 +265,7 @@
         }
     }
 
-    .panel-body {
-        flex: 1;
-        min-height: 200px;
-        padding: 12px 16px 14px;
+    .setting-body {
+        margin-top: 5px;
     }
 </style>

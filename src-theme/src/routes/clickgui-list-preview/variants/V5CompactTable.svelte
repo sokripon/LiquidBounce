@@ -138,12 +138,10 @@
     }
 
     .thead {
-        background: color-mix(in srgb, var(--accent-color) 14%, transparent);
-        color: color-mix(in srgb, var(--clickgui-text-color) 80%, transparent);
-        font-weight: 700;
-        text-transform: uppercase;
-        font-size: 9px;
-        letter-spacing: 0.5px;
+        background-color: var(--clickgui-base-30-color);
+        color: var(--clickgui-text-dimmed-color);
+        font-weight: 500;
+        font-size: 10px;
     }
 
     .trow {
@@ -200,7 +198,7 @@
 
         &:hover:not(:disabled) { background: color-mix(in srgb, var(--accent-color) 22%, transparent); }
         &:disabled { opacity: 0.25; cursor: not-allowed; }
-        &.remove { color: #ff8a80; }
+        &.remove { color: var(--clickgui-selection-chip-remove-color); }
     }
 
     .add {
@@ -209,14 +207,14 @@
         font-family: monospace;
         font-size: 11px;
         color: var(--accent-color);
-        background: color-mix(in srgb, var(--accent-color) 8%, transparent);
+        background-color: var(--clickgui-base-30-color);
         border: none;
-        border-top: 1px dashed color-mix(in srgb, var(--accent-color) 35%, transparent);
+        border-top: 1px solid var(--accent-color);
         padding: 6px 10px;
         cursor: pointer;
-        transition: background 0.15s;
+        transition: background-color 0.2s ease;
 
-        &:hover { background: color-mix(in srgb, var(--accent-color) 18%, transparent); }
+        &:hover { background-color: var(--clickgui-base-50-color); }
     }
 
     .add-row {

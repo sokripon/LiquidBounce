@@ -231,18 +231,17 @@
 
         &:hover:not(:disabled) { background: color-mix(in srgb, var(--accent-color) 25%, transparent); }
         &:disabled { opacity: 0.25; cursor: not-allowed; }
-        &.remove { color: #ff8a80; }
+        &.remove { color: var(--clickgui-selection-chip-remove-color); }
     }
 
     .add {
         cursor: pointer;
         color: var(--accent-color);
-        border-style: dashed;
         justify-content: center;
 
         .plus { font-size: 28px; line-height: 1; }
         .add-label { font-size: 10px; }
-        &:hover { background: var(--clickgui-button-hover-background-color); }
+        &:hover { background-color: var(--clickgui-button-hover-background-color); }
     }
 
     .overlay {
@@ -266,10 +265,9 @@
         max-height: 80vh;
         display: flex;
         flex-direction: column;
-        background: var(--clickgui-base-color, #1a1a22);
-        border: 1px solid color-mix(in srgb, var(--accent-color) 40%, transparent);
-        border-radius: 6px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        background-color: var(--clickgui-window-background-color);
+        border-radius: 5px;
+        box-shadow: 0 0 10px var(--clickgui-window-shadow-color);
         overflow: hidden;
     }
 
@@ -277,14 +275,16 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 10px 12px;
-        border-bottom: 1px solid color-mix(in srgb, var(--accent-color) 20%, transparent);
+        padding: 12px 16px;
+        background-color: var(--clickgui-window-header-background-color);
+        border-bottom: 2px solid var(--clickgui-window-header-border-color);
     }
 
     .search {
         flex: 1;
-        background: color-mix(in srgb, #000 30%, transparent);
-        border: 1px solid color-mix(in srgb, var(--accent-color) 30%, transparent);
+        background-color: var(--clickgui-input-background-color);
+        border: none;
+        border-bottom: 1px solid var(--accent-color);
         color: var(--clickgui-text-color);
         font-family: "Inter", sans-serif;
         font-size: 13px;
@@ -292,22 +292,20 @@
         border-radius: 3px;
         outline: none;
 
-        &:focus { border-color: var(--accent-color); }
-        &::placeholder { color: color-mix(in srgb, var(--clickgui-text-color) 50%, transparent); }
+        &::placeholder { color: var(--clickgui-text-dimmed-color); }
     }
 
     .close {
         background: none;
         border: none;
-        color: var(--clickgui-text-color);
+        color: var(--clickgui-text-dimmed-color);
         font-size: 20px;
         line-height: 1;
         padding: 0 8px;
         cursor: pointer;
-        opacity: 0.6;
-        transition: opacity 0.15s;
+        transition: color 0.15s;
 
-        &:hover { opacity: 1; }
+        &:hover { color: var(--clickgui-text-color); }
     }
 
     .dialog-grid {

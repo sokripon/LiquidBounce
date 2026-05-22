@@ -206,7 +206,7 @@
             opacity: 0.25;
             cursor: not-allowed;
         }
-        &.remove { color: #e57373; }
+        &.remove { color: var(--clickgui-selection-chip-remove-color); }
     }
 
     .add {
@@ -214,24 +214,27 @@
         font-family: monospace;
         font-size: 12px;
         color: var(--clickgui-text-color);
-        background: var(--clickgui-button-background-color);
-        border: 1px dashed color-mix(in srgb, var(--accent-color) 40%, transparent);
+        background-color: var(--clickgui-button-background-color);
+        border: none;
         padding: 6px 10px;
-        border-radius: 4px;
+        border-radius: 3px;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: background-color 0.2s ease;
 
-        &:hover { background: var(--clickgui-button-hover-background-color); }
+        &:hover { background-color: var(--clickgui-button-hover-background-color); }
     }
 
     .ghost .badge.ghost-badge {
         background: color-mix(in srgb, var(--accent-color) 40%, transparent);
-        border: 1px dashed var(--accent-color);
     }
 
     .chooser-body {
         gap: 4px;
         padding: 2px 4px 2px 8px;
+        background-color: var(--clickgui-input-background-color);
+        border: none;
+        border-bottom: 1px solid var(--accent-color);
+        border-radius: 3px;
     }
 
     .search {
@@ -244,7 +247,7 @@
         color: var(--clickgui-text-color);
         padding: 4px 0;
 
-        &::placeholder { color: color-mix(in srgb, var(--clickgui-text-color) 50%, transparent); }
+        &::placeholder { color: var(--clickgui-text-dimmed-color); }
     }
 
     .results {
@@ -254,9 +257,9 @@
         gap: 2px;
         max-height: 180px;
         overflow-y: auto;
-        background: color-mix(in srgb, var(--clickgui-base-color) 60%, transparent);
-        border: 1px solid color-mix(in srgb, var(--accent-color) 15%, transparent);
-        border-radius: 4px;
+        background-color: var(--clickgui-input-background-color);
+        border-bottom: 1px solid var(--accent-color);
+        border-radius: 3px;
         padding: 4px;
     }
 
