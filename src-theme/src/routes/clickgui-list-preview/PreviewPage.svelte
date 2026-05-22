@@ -147,17 +147,18 @@
 </div>
 
 <style lang="scss">
-    .preview {
-        --clickgui-base-color: #1a1a22;
-        --clickgui-text-color: #e8e8ee;
-        --clickgui-button-background-color: #2a2a35;
-        --clickgui-button-hover-background-color: #353545;
+    $grid-size: 10px;
 
+    .preview {
         min-height: 100vh;
         padding: 24px;
-        background: radial-gradient(circle at top, #20202a 0%, #0d0d12 100%);
+        background-color: var(--clickgui-overlay-background-color);
+        background-image:
+            linear-gradient(to right, var(--clickgui-grid-color) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--clickgui-grid-color) 1px, transparent 1px);
+        background-size: $grid-size $grid-size;
         color: var(--clickgui-text-color);
-        font-family: "Inter", system-ui, sans-serif;
+        font-family: "Inter", sans-serif;
     }
 
     .page-header {
@@ -165,15 +166,18 @@
         margin: 0 auto 20px;
 
         h1 {
-            font-size: 22px;
-            font-weight: 700;
+            font-size: 16px;
+            font-weight: 600;
             margin: 0 0 4px;
-            color: var(--accent-color);
+            color: var(--clickgui-text-color);
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 8px;
         }
+
         p {
             font-size: 13px;
-            color: color-mix(in srgb, var(--clickgui-text-color) 70%, transparent);
-            margin: 0;
+            color: var(--clickgui-text-dimmed-color);
+            margin: 8px 0 0;
         }
     }
 
@@ -186,32 +190,18 @@
     }
 
     .panel {
-        background: color-mix(in srgb, var(--clickgui-base-color) 70%, transparent);
-        border: 1px solid color-mix(in srgb, var(--accent-color) 20%, transparent);
-        border-radius: 6px;
-        padding: 14px;
+        background-color: var(--clickgui-window-background-color);
+        border-radius: 5px;
+        box-shadow: 0 0 10px var(--clickgui-window-shadow-color);
+        overflow: hidden;
         display: flex;
         flex-direction: column;
-        gap: 12px;
     }
 
     .panel-header {
-        border-bottom: 1px solid color-mix(in srgb, var(--accent-color) 15%, transparent);
-        padding-bottom: 8px;
-
-        h2 {
-            font-size: 13px;
-            font-weight: 700;
-            margin: 0;
-            color: var(--accent-color);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .note {
-            font-size: 11px;
-            color: color-mix(in srgb, var(--clickgui-text-color) 60%, transparent);
-            margin: 4px 0 0;
-        }
+        background-color: var(--clickgui-window-header-background-color);
+        border-bottom: 2px solid var(--clickgui-window-header-border-color);
+        padding: 12px 16px;
     }
 
     .title-row {
@@ -221,24 +211,38 @@
         gap: 8px;
     }
 
+    h2 {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0;
+        color: var(--clickgui-text-color);
+    }
+
+    .note {
+        font-size: 11px;
+        color: var(--clickgui-text-dimmed-color);
+        margin: 4px 0 0;
+    }
+
     .reset {
-        font-size: 10px;
-        background: transparent;
-        color: color-mix(in srgb, var(--clickgui-text-color) 70%, transparent);
-        border: 1px solid color-mix(in srgb, var(--clickgui-text-color) 30%, transparent);
+        font-family: monospace;
+        font-size: 11px;
+        color: var(--clickgui-text-color);
+        background-color: var(--clickgui-button-background-color);
+        border: none;
         border-radius: 3px;
-        padding: 2px 6px;
+        padding: 4px 8px;
         cursor: pointer;
-        transition: color 0.15s, border-color 0.15s;
+        transition: background-color 0.2s ease;
 
         &:hover {
-            color: var(--accent-color);
-            border-color: var(--accent-color);
+            background-color: var(--clickgui-button-hover-background-color);
         }
     }
 
     .panel-body {
         flex: 1;
         min-height: 200px;
+        padding: 12px 16px 14px;
     }
 </style>
