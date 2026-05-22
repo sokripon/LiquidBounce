@@ -14,7 +14,7 @@
 
     let {items, addLabel = "Add Item", onmove, onreorder, onremove, onadd}: Props = $props();
 
-    const dnd = createDragReorder({onreorder, axis: "vertical"});
+    const dnd = createDragReorder({onreorder: (from, to) => onreorder(from, to), axis: "vertical"});
 </script>
 
 <div class="ordered-list" role="list">

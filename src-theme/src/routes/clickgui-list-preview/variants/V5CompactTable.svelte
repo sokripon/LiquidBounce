@@ -22,12 +22,12 @@
 
     let {items, availableItems, addLabel = "Add Item", onmove, onreorder, onremove, onselect}: Props = $props();
 
-    const dnd = createDragReorder({onreorder, axis: "vertical"});
+    const dnd = createDragReorder({onreorder: (from, to) => onreorder(from, to), axis: "vertical"});
     let inputEl: HTMLInputElement | undefined = $state();
     const chooser = createItemChooser({
         availableItems: () => availableItems,
         inputEl: () => inputEl,
-        onselect,
+        onselect: (value) => onselect(value),
     });
 </script>
 

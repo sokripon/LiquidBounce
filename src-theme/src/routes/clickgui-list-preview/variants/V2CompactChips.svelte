@@ -23,12 +23,12 @@
     let {items, availableItems, addLabel = "Add", onmove: _onmove, onreorder, onremove, onselect}: Props = $props();
     // onmove intentionally unused — chips rely on DnD only.
 
-    const dnd = createDragReorder({onreorder, axis: "horizontal"});
+    const dnd = createDragReorder({onreorder: (from, to) => onreorder(from, to), axis: "horizontal"});
     let inputEl: HTMLInputElement | undefined = $state();
     const chooser = createItemChooser({
         availableItems: () => availableItems,
         inputEl: () => inputEl,
-        onselect,
+        onselect: (value) => onselect(value),
         emptyAllAdded: "No more items to add",
     });
 
