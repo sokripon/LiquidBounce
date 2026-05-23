@@ -2,6 +2,8 @@
     import type {NamedItem} from "../../../../integration/types";
     import {createDragReorder} from "./dragReorder.svelte";
     import ItemIcon from "./ItemIcon.svelte";
+    import RemoveButton from "../common/RemoveButton.svelte";
+    import SettingButton from "../common/SettingButton.svelte";
 
     interface Props {
         items: NamedItem[];
@@ -40,13 +42,11 @@
                         <span class="arrow-placeholder"></span>
                     {/if}
                 </div>
-                <button class="button-remove" title="Remove" onclick={() => onremove(item.value)}>
-                    <img src="img/clickgui/icon-cross.svg" alt="remove">
-                </button>
+                <RemoveButton onclick={() => onremove(item.value)}/>
             </div>
         </div>
     {/each}
-    <button class="add-btn" onclick={onadd}>{addLabel}</button>
+    <SettingButton label={addLabel} onclick={onadd}/>
 </div>
 
 <style lang="scss">
@@ -131,30 +131,6 @@
             height: 14px;
             width: 10px;
             visibility: hidden;
-        }
-
-        .button-remove {
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 2px 5px;
-        }
-    }
-
-    .add-btn {
-        font-family: monospace;
-        font-size: 12px;
-        color: var(--clickgui-text-color);
-        background-color: var(--clickgui-button-background-color);
-        border: none;
-        padding: 6px 10px;
-        border-radius: 3px;
-        width: 100%;
-        cursor: pointer;
-        transition: ease background-color .2s;
-
-        &:hover {
-            background-color: var(--clickgui-button-hover-background-color);
         }
     }
 </style>

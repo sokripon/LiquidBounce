@@ -2,6 +2,8 @@
     import {createEventDispatcher} from "svelte";
     import type {ListSetting, ModuleSetting} from "../../../../integration/types";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../../theme/theme_config";
+    import RemoveButton from "../common/RemoveButton.svelte";
+    import SettingButton from "../common/SettingButton.svelte";
 
     interface Props {
         setting: ModuleSetting;
@@ -36,7 +38,7 @@
 
 <div class="setting">
     <div class="name">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</div>
-    <button class="button-add" onclick={addEmpty}>Add value</button>
+    <SettingButton label="Add value" onclick={addEmpty}/>
     {#if cSetting.value.length > 0}
         <div class="inputs">
             {#each cSetting.value as value, index (index)}
@@ -44,9 +46,7 @@
                     <input type="text" class="value" spellcheck="false" placeholder={cSetting.name}
                            {value}
                            oninput={(e) => updateAt(index, (e.currentTarget as HTMLInputElement).value)}>
-                    <button class="button-remove" title="Remove" onclick={() => removeAt(index)}>
-                        <img src="img/clickgui/icon-cross.svg" alt="remove">
-                    </button>
+                    <RemoveButton onclick={() => removeAt(index)}/>
                 </div>
             {/each}
         </div>
@@ -60,12 +60,6 @@
     grid-template-columns: 1fr max-content;
     column-gap: 5px;
     align-items: center;
-  }
-
-  .button-remove {
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
   }
 
   .setting {
@@ -84,23 +78,6 @@
     color: var(--clickgui-text-color);
     font-size: 12px;
     margin-bottom: 5px;
-  }
-
-  .button-add {
-    font-family: monospace;
-    font-size: 12px;
-    color: var(--clickgui-text-color);
-    background-color: var(--clickgui-button-background-color);
-    border: none;
-    padding: 6px 10px;
-    border-radius: 3px;
-    width: 100%;
-    cursor: pointer;
-    transition: ease background-color .2s;
-
-    &:hover {
-        background-color: var(--clickgui-button-hover-background-color);
-    }
   }
 
   .value {
