@@ -1,21 +1,23 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
     import type {BlockHitResult, ModuleSetting, Setting, Vec, Vec3Setting, VecAxis} from "../../../integration/types";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
     import {getCrosshairData, getPlayerData} from "../../../integration/rest";
 
-    export let setting: ModuleSetting;
-    export let vecAxes: VecAxis[];
-    export let step: number;
+    interface Props {
+        setting: ModuleSetting;
+        vecAxes: VecAxis[];
+        step: number;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as Setting<Vec<typeof vecAxes[number]>>;
-    const useLocateButton = (setting as Vec3Setting).useLocateButton ?? false;
+    let {setting = $bindable(), vecAxes, step, onchange}: Props = $props();
 
-    const dispatch = createEventDispatcher();
+    const cSetting = $derived(setting as Setting<Vec<typeof vecAxes[number]>>);
+    const useLocateButton = $derived((setting as Vec3Setting).useLocateButton ?? false);
 
     function handleChange() {
         setting = {...cSetting};
-        dispatch("change");
+        onchange?.();
     }
 
     async function locate() {
@@ -44,11 +46,11 @@
                     spellcheck="false"
                     placeholder={axis.toUpperCase()}
                     bind:value={cSetting.value[axis]}
-                    on:input={handleChange}
+                    oninput={handleChange}
             />
         {/each}
         {#if useLocateButton}
-            <button class="locate-btn" on:click={locate} title="Locate">&#x2299;</button>
+            <button class="locate-btn" onclick={locate} title="Locate">&#x2299;</button>
         {/if}
     </div>
 </div>

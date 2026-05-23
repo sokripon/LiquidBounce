@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { createEventDispatcher } from "svelte";
     import type {
         ModuleSetting,
         BooleanSetting,
@@ -7,16 +6,18 @@
     import Switch from "./common/Switch.svelte";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
 
-    export let setting: ModuleSetting;
+    interface Props {
+        setting: ModuleSetting;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as BooleanSetting;
+    let {setting = $bindable(), onchange}: Props = $props();
 
-    const dispatch = createEventDispatcher();
+    const cSetting = $derived(setting as BooleanSetting);
 
     function handleChange() {
         setting = { ...cSetting };
-
-        dispatch("change");
+        onchange?.();
     }
 </script>
 
@@ -24,7 +25,7 @@
     <Switch
         name={$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}
         bind:value={cSetting.value}
-        on:change={handleChange}
+        onchange={handleChange}
     />
 </div>
 

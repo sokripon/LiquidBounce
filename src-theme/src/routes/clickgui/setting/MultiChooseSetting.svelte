@@ -1,21 +1,24 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
     import type {ModuleSetting, MultiChooseSetting,} from "../../../integration/types";
     import {slide} from "svelte/transition";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
     import ExpandArrow from "./common/ExpandArrow.svelte";
     import {setItem} from "../../../integration/persistent_storage";
+    import {untrack} from "svelte";
 
-    export let setting: ModuleSetting;
-    export let path: string;
+    interface Props {
+        setting: ModuleSetting;
+        path: string;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as MultiChooseSetting;
-    const thisPath = `${path}.${cSetting.name}`;
+    let {setting = $bindable(), path, onchange}: Props = $props();
 
-    let errorValue: string | null = null;
+    const cSetting = $derived(setting as MultiChooseSetting);
+    const thisPath = $derived(`${path}.${cSetting.name}`);
+
+    let errorValue = $state<string | null>(null);
     let timeoutId: ReturnType<typeof setTimeout>;
-
-    const dispatch = createEventDispatcher();
 
     function handleChange(v: string) {
         if (cSetting.value.includes(v)) {
@@ -24,7 +27,7 @@
             if (filtered.length === 0 && !cSetting.canBeNone) {
                 // Doesn't remove the element because in this case the value will be empty
                 // And indicate the value
-                errorValue = v
+                errorValue = v;
                 clearTimeout(timeoutId);
                 timeoutId = setTimeout(() => errorValue = null, 300);
 
@@ -33,26 +36,29 @@
 
             cSetting.value = filtered;
         } else {
-            cSetting.value = [...cSetting.value, v]
+            cSetting.value = [...cSetting.value, v];
         }
 
         setting = {...cSetting};
-        dispatch("change");
+        onchange?.();
     }
 
-    let expanded = localStorage.getItem(thisPath) === "true";
+    let expanded = $state(untrack(() => localStorage.getItem(`${path}.${(setting as MultiChooseSetting).name}`) === "true"));
 
-    $: setItem(thisPath, expanded.toString());
+    $effect(() => {
+        setItem(thisPath, expanded.toString());
+    });
 
-    function toggleExpanded() {
+    function toggleExpanded(event: Event) {
+        event.preventDefault();
         expanded = !expanded;
     }
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="setting">
-    <div class="head" class:expanded on:contextmenu|preventDefault={toggleExpanded}>
+    <div class="head" class:expanded oncontextmenu={toggleExpanded}>
         <div class="title">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</div>
         <div class="amount">{cSetting.value.length}/{cSetting.choices.length}</div>
         <ExpandArrow bind:expanded/>
@@ -65,9 +71,7 @@
                         class="choice"
                         class:active={cSetting.value.includes(choice)}
                         class:error={errorValue === choice}
-                        on:click={() => {
-                            handleChange(choice)
-                        }}
+                        onclick={() => handleChange(choice)}
                 >
                     {$spaceSeperatedNames ? convertToSpacedString(choice) : choice}
                 </div>

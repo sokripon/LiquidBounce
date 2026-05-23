@@ -1,18 +1,20 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
     import type {ModuleSetting, TextSetting,} from "../../../integration/types";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
     import {setTyping} from "../../../integration/rest";
 
-    export let setting: ModuleSetting;
+    interface Props {
+        setting: ModuleSetting;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as TextSetting;
+    let {setting = $bindable(), onchange}: Props = $props();
 
-    const dispatch = createEventDispatcher();
+    const cSetting = $derived(setting as TextSetting);
 
     function handleChange() {
         setting = {...cSetting};
-        dispatch("change");
+        onchange?.();
     }
 </script>
 
@@ -21,9 +23,9 @@
     <input type="text" class="value" spellcheck="false"
            placeholder={$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}
            bind:value={cSetting.value}
-           on:input={handleChange}
-           on:focusin={async () => await setTyping(true)}
-           on:focusout={async () => await setTyping(false)}
+           oninput={handleChange}
+           onfocusin={async () => await setTyping(true)}
+           onfocusout={async () => await setTyping(false)}
     >
 </div>
 

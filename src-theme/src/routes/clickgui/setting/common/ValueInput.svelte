@@ -1,21 +1,20 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
+    interface Props {
+        value: number;
+        valueType: "int" | "float";
+        onchange?: (detail: {value: number}) => void;
+    }
 
-    export let value: number;
-    export let valueType: "int" | "float";
+    let {value, valueType, onchange}: Props = $props();
 
-    let inputElement: HTMLElement;
-    let inputValue = "";
+    let inputElement = $state<HTMLElement>();
+    let inputValue = $state("");
 
-    $: {
+    $effect(() => {
         if (document.activeElement !== inputElement) {
             inputValue = value.toString();
         }
-    }
-
-    const dispatch = createEventDispatcher<{
-        change: { value: number }
-    }>();
+    });
 
     function handleInput() {
         let parsed: number;
@@ -26,7 +25,7 @@
         }
 
         if (!isNaN(parsed)) {
-            dispatch("change", {value: parsed});
+            onchange?.({value: parsed});
         }
     }
 
@@ -37,8 +36,8 @@
     }
 </script>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<span contenteditable="true" class="value" bind:innerText={inputValue} on:input={handleInput} on:keydown={handleKeyDown} bind:this={inputElement}></span>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<span contenteditable="true" class="value" bind:innerText={inputValue} oninput={handleInput} onkeydown={handleKeyDown} bind:this={inputElement}></span>
 
 <style lang="scss">
 

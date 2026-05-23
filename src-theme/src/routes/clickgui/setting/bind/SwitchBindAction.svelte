@@ -3,16 +3,21 @@
     import {fly} from "svelte/transition";
     import {cubicOut} from 'svelte/easing';
 
-    export let choices: BindAction[];
-    export let chosen: typeof choices[number];
-    export let onchange: () => any;
+    interface Props {
+        choices: BindAction[];
+        chosen: BindAction;
+        onchange: () => unknown;
+    }
 
-    let jiggle = 0;
+    let {choices, chosen = $bindable(), onchange}: Props = $props();
+
+    let jiggle = $state(0);
 
     /**
      * Switch item among {@link choices}.
      */
-    function switchAction() {
+    function switchAction(e: MouseEvent) {
+        e.stopPropagation();
         const currentIndex = choices.indexOf(chosen);
         if (currentIndex === -1) {
             throw new Error("Unexpected action: " + chosen);
@@ -31,7 +36,7 @@
 </script>
 
 <!-- svelte-ignore a11y_consider_explicit_label -->
-<button on:click|stopPropagation={switchAction}>
+<button onclick={switchAction}>
     <span class="chosen-holder">
         {#key chosen}
             <span

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {createEventDispatcher, onMount, untrack} from "svelte";
+    import {onMount, untrack} from "svelte";
     import {slide} from "svelte/transition";
     import type {
         ModuleSetting,
@@ -16,18 +16,16 @@
     interface Props {
         setting: ModuleSetting;
         path: string;
+        onchange?: () => void;
     }
 
-    let {setting = $bindable(), path}: Props = $props();
+    let {setting = $bindable(), path, onchange}: Props = $props();
 
     const cSetting = $derived(setting as RegistryMutableListSetting);
     const thisPath = $derived(`${path}.${cSetting.name}`);
 
-    // Boundary-compatible event for the legacy GenericSetting parent (`on:change`).
-    const dispatch = createEventDispatcher();
-
     let allItems = $state<NamedItem[]>([]);
-    let expanded = $state(untrack(() => localStorage.getItem(thisPath) === "true"));
+    let expanded = $state(untrack(() => localStorage.getItem(`${path}.${(setting as RegistryMutableListSetting).name}`) === "true"));
     let showChooser = $state(false);
 
     onMount(async () => {
@@ -69,7 +67,7 @@
 
     function commitChange(newValue: string[]) {
         setting = {...cSetting, value: newValue};
-        dispatch("change");
+        onchange?.();
     }
 
     function handleAdd(detail: {value: string}) {

@@ -2,11 +2,15 @@
     import type {ItemListSetting, ModuleSetting, NamedItem} from "../../../../integration/types";
     import GenericListSetting from "./GenericListSetting.svelte";
 
-    export let setting: ModuleSetting;
-    export let path: string;
+    interface Props {
+        setting: ModuleSetting;
+        path: string;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as ItemListSetting;
-    let items: NamedItem[] = cSetting.items;
+    let {setting = $bindable(), path, onchange}: Props = $props();
+
+    const items = $derived((setting as ItemListSetting).items as NamedItem[]);
 </script>
 
-<GenericListSetting {path} bind:setting={setting} {items} on:change />
+<GenericListSetting {path} bind:setting {items} {onchange}/>

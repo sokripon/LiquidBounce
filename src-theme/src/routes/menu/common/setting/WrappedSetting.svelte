@@ -8,7 +8,8 @@
 
     interface Props {
         value: NesterSetting,
-        path: string
+        path: string,
+        onchange?: () => void
     }
 
     interface NesterSetting {
@@ -17,7 +18,7 @@
         value: ModuleSetting[];
     }
 
-    const {value = $bindable(), path}: Props = $props();
+    const {value = $bindable(), path, onchange}: Props = $props();
 
     const enabledSetting = value.value[0] as TBooleanSetting;
 
@@ -45,7 +46,7 @@
     }
 </script>
 
-<svelte:window on:click={handleWindowClick}/>
+<svelte:window onclick={handleWindowClick}/>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -67,7 +68,7 @@
     {#if expanded && value.value.length > 0}
         <div class="nested-settings" transition:fade|global={{ duration: 200, easing: quintOut }}>
             {#each value.value as setting, i (setting.name)}
-                <GenericSetting {path} bind:setting={value.value[i]} on:change/>
+                <GenericSetting {path} bind:setting={value.value[i]} {onchange}/>
             {/each}
         </div>
     {/if}

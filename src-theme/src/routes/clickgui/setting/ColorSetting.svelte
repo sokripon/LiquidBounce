@@ -1,25 +1,29 @@
 <script lang="ts">
     import "@simonwep/pickr/dist/themes/classic.min.css";
     import "./pickr.scss";
-    import {createEventDispatcher, onMount} from "svelte";
+    import {onMount} from "svelte";
     import type {ColorSetting, ModuleSetting,} from "../../../integration/types.js";
     import Pickr from "@simonwep/pickr";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
     import {intToRgba, rgbaToHex, rgbaToInt} from "../../../integration/util";
 
-    export let setting: ModuleSetting;
+    interface Props {
+        setting: ModuleSetting;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as ColorSetting;
+    let {setting = $bindable(), onchange}: Props = $props();
 
-    const dispatch = createEventDispatcher();
+    const cSetting = $derived(setting as ColorSetting);
 
-    let colorPicker: HTMLElement;
+    let colorPicker = $state<HTMLElement>();
     let pickr: Pickr;
-    let hidden = true;
+    let hidden = $state(true);
 
-    let hex = rgbaToHex(intToRgba(cSetting.value));
+    let hex = $state(rgbaToHex(intToRgba((setting as ColorSetting).value)));
 
     onMount(() => {
+        if (!colorPicker) return;
         pickr = Pickr.create({
             el: colorPicker,
             theme: "classic",
@@ -51,9 +55,8 @@
             const [r, g, b, a] = v.toRGBA();
             const rgba = [r, g, b, a * 255];
 
-            cSetting.value = rgbaToInt(rgba);
-            setting = { ...cSetting };
-            dispatch("change");
+            setting = { ...cSetting, value: rgbaToInt(rgba) };
+            onchange?.();
         });
     });
 
@@ -68,12 +71,12 @@
         <input
             class="value"
             bind:value={hex}
-            on:input={handleValueInput}
+            oninput={handleValueInput}
         />
         <!-- svelte-ignore a11y_consider_explicit_label -->
         <button
             class="color-pickr-button"
-            on:click={() => (hidden = !hidden)}
+            onclick={() => (hidden = !hidden)}
             style="background-color: {hex};"
         ></button>
     </div>

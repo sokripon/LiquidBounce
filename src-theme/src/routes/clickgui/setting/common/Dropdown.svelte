@@ -1,32 +1,34 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../../theme/theme_config";
 
-    export let name: string | null;
-    export let options: string[];
-    export let value: string;
+    interface Props {
+        name: string | null;
+        options: string[];
+        value: string;
+        onchange?: () => void;
+    }
 
-    const dispatch = createEventDispatcher();
+    let {name, options, value = $bindable(), onchange}: Props = $props();
 
-    let expanded = false;
-    let dropdownHead: HTMLElement;
+    let expanded = $state(false);
+    let dropdownHead = $state<HTMLElement>();
 
     function windowClickHide(e: MouseEvent) {
-        if (!dropdownHead.contains(e.target as Node)) {
+        if (dropdownHead && !dropdownHead.contains(e.target as Node)) {
             expanded = false;
         }
     }
 
     function updateValue(v: string) {
         value = v;
-        dispatch("change");
+        onchange?.();
     }
 </script>
 
-<svelte:window on:click={windowClickHide}/>
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<div class="dropdown" class:expanded on:click={() => (expanded = !expanded)}>
+<svelte:window onclick={windowClickHide}/>
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="dropdown" class:expanded onclick={() => (expanded = !expanded)}>
     <div class="head" bind:this={dropdownHead}>
         {#if name !== null}
             <span class="text">{$spaceSeperatedNames ? convertToSpacedString(name) : name}
@@ -42,7 +44,7 @@
                 <div
                         class="option"
                         class:active={o === value}
-                        on:click={() => updateValue(o)}
+                        onclick={() => updateValue(o)}
                 >
                     {$spaceSeperatedNames ? convertToSpacedString(o) : o}
                 </div>

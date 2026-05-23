@@ -2,19 +2,21 @@
     import type {FileSetting, ModuleSetting} from "../../../integration/types";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
     import {browsePath, openFileDialog} from "../../../integration/rest";
-    import {createEventDispatcher} from "svelte";
 
-    export let setting: ModuleSetting;
+    interface Props {
+        setting: ModuleSetting;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as FileSetting;
+    let {setting = $bindable(), onchange}: Props = $props();
 
-    let selecting = false;
+    const cSetting = $derived(setting as FileSetting);
 
-    const dispatch = createEventDispatcher();
+    let selecting = $state(false);
 
     function handleChange() {
         setting = {...cSetting};
-        dispatch("change");
+        onchange?.();
     }
 
     async function selectFile() {
@@ -43,17 +45,17 @@
 </script>
 
 <div class="setting">
-    <div class="name">{spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</div>
+    <div class="name">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</div>
 
     <div class="body">
-        <button class="button-select" on:click={selectFile}>{cSetting.value === "" ? "<empty>" : cSetting.value}</button>
+        <button class="button-select" onclick={selectFile}>{cSetting.value === "" ? "<empty>" : cSetting.value}</button>
 
         {#if cSetting.value !== ""}
-            <button class="button-action" on:click={resetFile}>
+            <button class="button-action" onclick={resetFile}>
                 <img class="icon" src="img/clickgui/icon-reset.svg" alt="reset-file" title="Reset" />
             </button>
 
-            <button class="button-action" on:click={() => browsePath(cSetting.value)}>
+            <button class="button-action" onclick={() => browsePath(cSetting.value)}>
                 <img class="icon" src="img/clickgui/icon-open-file.svg" alt="open-file" title="Open" />
             </button>
         {/if}

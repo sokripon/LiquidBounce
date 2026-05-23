@@ -34,7 +34,7 @@
                                 path="clickgui.global"
                                 bind:setting={globalSettings.value[i]}
                                 hideExpandControl={true}
-                                on:change={updateGlobalSettings}
+                                onchange={updateGlobalSettings}
                         />
                     </div>
                 {/if}

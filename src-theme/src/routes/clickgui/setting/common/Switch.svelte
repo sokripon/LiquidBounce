@@ -1,15 +1,16 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
+    interface Props {
+        value: boolean;
+        name: string;
+        onchange?: () => void;
+    }
 
-    export let value: boolean;
-    export let name: string;
-
-    const dispatch = createEventDispatcher();
+    let {value = $bindable(), name, onchange}: Props = $props();
 </script>
 
 <label class="switch-container">
     <span class="switch">
-        <input type="checkbox" bind:checked={value} on:change={() => dispatch("change")}/>
+        <input type="checkbox" bind:checked={value} onchange={() => onchange?.()}/>
         <span class="slider"></span>
     </span>
 

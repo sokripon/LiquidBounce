@@ -1,24 +1,26 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
     import type {ChooseSetting, ModuleSetting,} from "../../../integration/types";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
     import Dropdown from "./common/Dropdown.svelte";
 
-    export let setting: ModuleSetting;
+    interface Props {
+        setting: ModuleSetting;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as ChooseSetting;
+    let {setting = $bindable(), onchange}: Props = $props();
 
-    const dispatch = createEventDispatcher();
+    const cSetting = $derived(setting as ChooseSetting);
 
     function handleChange() {
         setting = { ...cSetting };
-        dispatch("change");
+        onchange?.();
     }
 </script>
 
 <div class="setting">
     <Dropdown
-        on:change={handleChange}
+        onchange={handleChange}
         bind:value={cSetting.value}
         options={cSetting.choices}
         name={$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}

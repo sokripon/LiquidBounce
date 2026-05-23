@@ -7,9 +7,10 @@
     interface Props {
         setting: ModuleSetting;
         path: string;
+        onchange?: () => void;
     }
 
-    let {setting = $bindable(), path}: Props = $props();
+    let {setting = $bindable(), path, onchange}: Props = $props();
 
     const cSetting = $derived(setting as RegistryListSetting);
 
@@ -27,4 +28,4 @@
     });
 </script>
 
-<GenericListSetting {path} bind:setting {items} on:change/>
+<GenericListSetting {path} bind:setting {items} {onchange}/>

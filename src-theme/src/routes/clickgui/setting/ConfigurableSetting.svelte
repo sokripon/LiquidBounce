@@ -1,30 +1,38 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
     import type {ConfigurableSetting, ModuleSetting,} from "../../../integration/types";
     import GenericSetting from "./common/GenericSetting.svelte";
     import ExpandArrow from "./common/ExpandArrow.svelte";
     import {setItem} from "../../../integration/persistent_storage";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
+    import {untrack} from "svelte";
 
-    export let setting: ModuleSetting;
-    export let path: string;
-    export let hideExpandControl: boolean = false;
+    interface Props {
+        setting: ModuleSetting;
+        path: string;
+        hideExpandControl?: boolean;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as ConfigurableSetting;
-    const thisPath = `${path}.${cSetting.name}`;
+    let {setting = $bindable(), path, hideExpandControl = false, onchange}: Props = $props();
 
-    const dispatch = createEventDispatcher();
+    const cSetting = $derived(setting as ConfigurableSetting);
+    const thisPath = $derived(`${path}.${cSetting.name}`);
 
     function handleChange() {
         setting = {...cSetting};
-        dispatch("change");
+        onchange?.();
     }
 
-    let expanded = hideExpandControl ? true : localStorage.getItem(thisPath) === "true";
+    let expanded = $state(untrack(() =>
+        hideExpandControl ? true : localStorage.getItem(`${path}.${(setting as ConfigurableSetting).name}`) === "true"
+    ));
 
-    $: setItem(thisPath, expanded.toString());
+    $effect(() => {
+        setItem(thisPath, expanded.toString());
+    });
 
-    function toggleExpanded() {
+    function toggleExpanded(e: Event) {
+        e.preventDefault();
         if (hideExpandControl) {
             return;
         }
@@ -33,8 +41,8 @@
 </script>
 
 <div class="setting">
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="head" class:expanded on:contextmenu|preventDefault={toggleExpanded}>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="head" class:expanded oncontextmenu={toggleExpanded}>
         <div class="title">{$spaceSeperatedNames ? convertToSpacedString(setting.name) : setting.name}</div>
         {#if !hideExpandControl}
             <ExpandArrow bind:expanded />
@@ -43,8 +51,8 @@
 
     {#if expanded}
         <div class="nested-settings">
-            {#each cSetting.value as setting (setting.name)}
-                <GenericSetting path={thisPath} bind:setting on:change={handleChange}/>
+            {#each cSetting.value as nested, i (nested.name)}
+                <GenericSetting path={thisPath} bind:setting={cSetting.value[i]} onchange={handleChange}/>
             {/each}
         </div>
     {/if}

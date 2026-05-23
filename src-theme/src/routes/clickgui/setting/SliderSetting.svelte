@@ -1,7 +1,7 @@
 <script lang="ts">
     import "nouislider/dist/nouislider.css";
     import "./nouislider.scss";
-    import {createEventDispatcher, onDestroy, onMount} from "svelte";
+    import {onDestroy, onMount} from "svelte";
     import noUiSlider, {type API} from "nouislider";
     import type {
         FloatRangeSetting,
@@ -20,14 +20,12 @@
         setting: ModuleSetting;
         kind: "int" | "float";
         mode: "single" | "range";
+        onchange?: () => void;
     }
 
-    let {setting = $bindable(), kind, mode}: Props = $props();
+    let {setting = $bindable(), kind, mode, onchange}: Props = $props();
 
     const cSetting = $derived(setting as AnySliderSetting);
-
-    // Boundary-compatible event for the legacy GenericSetting parent (`on:change`).
-    const dispatch = createEventDispatcher();
 
     let sliderEl = $state<HTMLElement>();
     let apiSlider: API | undefined;
@@ -86,7 +84,7 @@
         });
 
         apiSlider.on("set", () => {
-            dispatch("change");
+            onchange?.();
         });
     });
 
@@ -100,13 +98,13 @@
     <div class="value">
         {#if mode === "single"}
             <ValueInput valueType={kind} value={currentSingle()}
-                        on:change={(e) => apiSlider?.set(e.detail.value)}/>
+                        onchange={(e) => apiSlider?.set(e.value)}/>
         {:else}
             <ValueInput valueType={kind} value={currentRange().from}
-                        on:change={(e) => apiSlider?.set([e.detail.value, currentRange().to])}/>
+                        onchange={(e) => apiSlider?.set([e.value, currentRange().to])}/>
             -
             <ValueInput valueType={kind} value={currentRange().to}
-                        on:change={(e) => apiSlider?.set([currentRange().from, e.detail.value])}/>
+                        onchange={(e) => apiSlider?.set([currentRange().from, e.value])}/>
         {/if}
     </div>
     {#if cSetting.suffix !== ""}

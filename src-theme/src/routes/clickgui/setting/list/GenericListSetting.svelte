@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {createEventDispatcher, untrack} from "svelte";
+    import {untrack} from "svelte";
     import {slide} from "svelte/transition";
     import type {ListSetting, ModuleSetting, NamedItem} from "../../../../integration/types";
     import VirtualList from "../list/VirtualList.svelte";
@@ -13,18 +13,16 @@
         setting: ModuleSetting;
         path: string;
         items: NamedItem[];
+        onchange?: () => void;
     }
 
-    let {setting = $bindable(), path, items}: Props = $props();
+    let {setting = $bindable(), path, items, onchange}: Props = $props();
 
     const cSetting = $derived(setting as ListSetting);
     const thisPath = $derived(`${path}.${cSetting.name}`);
 
-    // Boundary-compatible event for the legacy GenericSetting parent (`on:change`).
-    const dispatch = createEventDispatcher();
-
     let searchQuery = $state("");
-    let expanded = $state(untrack(() => localStorage.getItem(thisPath) === "true"));
+    let expanded = $state(untrack(() => localStorage.getItem(`${path}.${(setting as ListSetting).name}`) === "true"));
 
     $effect(() => {
         setItem(thisPath, expanded.toString());
@@ -37,7 +35,7 @@
             ? [...cSetting.value, detail.value]
             : cSetting.value.filter(b => b !== detail.value);
         setting = {...cSetting, value: newValue};
-        dispatch("change");
+        onchange?.();
     }
 
     function toggleExpanded(event: Event) {

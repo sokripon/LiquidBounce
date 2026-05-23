@@ -1,48 +1,51 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
     import type {ChoiceSetting, ModuleSetting,} from "../../../integration/types";
     import ExpandArrow from "./common/ExpandArrow.svelte";
     import GenericSetting from "./common/GenericSetting.svelte";
     import {setItem} from "../../../integration/persistent_storage";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
     import Dropdown from "./common/Dropdown.svelte";
+    import {untrack} from "svelte";
 
-    export let setting: ModuleSetting;
-    export let path: string;
+    interface Props {
+        setting: ModuleSetting;
+        path: string;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as ChoiceSetting;
-    const thisPath = `${path}.${cSetting.name}`;
+    let {setting = $bindable(), path, onchange}: Props = $props();
 
-    const dispatch = createEventDispatcher();
-    const options = Object.keys(cSetting.choices);
-    let expanded = localStorage.getItem(thisPath) === "true";
+    const cSetting = $derived(setting as ChoiceSetting);
+    const thisPath = $derived(`${path}.${cSetting.name}`);
+    const options = $derived(Object.keys(cSetting.choices));
+    const nestedSettings = $derived(cSetting.choices[cSetting.active].value as ModuleSetting[]);
 
-    let nestedSettings = cSetting.choices[cSetting.active]
-        .value as ModuleSetting[];
-    $: nestedSettings = cSetting.choices[cSetting.active]
-        .value as ModuleSetting[];
+    let expanded = $state(untrack(() => localStorage.getItem(`${path}.${(setting as ChoiceSetting).name}`) === "true"));
 
-    $: setItem(thisPath, expanded.toString());
+    $effect(() => {
+        setItem(thisPath, expanded.toString());
+    });
 
     function handleChange() {
         setting = { ...cSetting };
-        dispatch("change");
+        onchange?.();
     }
 
-    function toggleExpanded() {
+    function toggleExpanded(e: Event) {
+        e.preventDefault();
         expanded = !expanded;
     }
 </script>
 
 <div class="setting">
     {#if nestedSettings.length > 0}
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="head expand" class:expanded on:contextmenu|preventDefault={toggleExpanded}>
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="head expand" class:expanded oncontextmenu={toggleExpanded}>
             <Dropdown
                 bind:value={cSetting.active}
                 {options}
                 name={$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}
-                on:change={handleChange}
+                onchange={handleChange}
             />
             <ExpandArrow bind:expanded />
         </div>
@@ -52,15 +55,15 @@
                 bind:value={cSetting.active}
                 {options}
                 name={$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}
-                on:change={handleChange}
+                onchange={handleChange}
             />
         </div>
     {/if}
 
     {#if expanded && nestedSettings.length > 0}
         <div class="nested-settings">
-            {#each nestedSettings as setting (setting.name)}
-                <GenericSetting path={thisPath} bind:setting={setting} on:change={handleChange} />
+            {#each nestedSettings as nested, i (nested.name)}
+                <GenericSetting path={thisPath} bind:setting={nestedSettings[i]} onchange={handleChange} />
             {/each}
         </div>
     {/if}

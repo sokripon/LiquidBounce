@@ -1,5 +1,6 @@
 <script lang="ts">
-    import {createEventDispatcher, onDestroy} from "svelte";
+    import {onDestroy} from "svelte";
+    import {SvelteSet} from "svelte/reactivity";
     import type {BindModifier, BindSetting, ModuleSetting} from "../../../../integration/types";
     import {waitMatches} from "../../../../integration/ws";
     import type {KeyboardKeyEvent, MouseButtonEvent} from "../../../../integration/events";
@@ -28,14 +29,17 @@
         "key.keyboard.left.win": "Super", "key.keyboard.right.win": "Super",
     } as const;
 
-    export let setting: ModuleSetting;
+    interface Props {
+        setting: ModuleSetting;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as BindSetting;
+    let {setting = $bindable(), onchange}: Props = $props();
 
-    const dispatch = createEventDispatcher();
+    const cSetting = $derived(setting as BindSetting);
 
-    let isHovered = false;
-    let binding = false;
+    let isHovered = $state(false);
+    let binding = $state(false);
 
     /**
      * Gets the next possible event which can be used as a bind.
@@ -49,7 +53,7 @@
         ),
     ]);
 
-    let addedModifiers = new Set<BindModifier>();
+    let addedModifiers = $state(new SvelteSet<BindModifier>());
 
     /**
      * Tries to handle the event. If it's consumed
@@ -109,7 +113,6 @@
             const {key, modifier} = result;
 
             addedModifiers.add(modifier);
-            addedModifiers = addedModifiers; // Trigger reactive update
 
             timeout = setTimeout(() => {
                 if (binding) {
@@ -137,16 +140,16 @@
 
     function handleChange() {
         setting = {...cSetting};
-        dispatch("change");
+        onchange?.();
     }
 </script>
 
 <div class="setting" class:has-value={cSetting.value.boundKey !== UNKNOWN_KEY}>
     <button
             class="change-bind"
-            on:click={toggleBinding}
-            on:mouseenter={() => isHovered = true}
-            on:mouseleave={() => isHovered = false}
+            onclick={toggleBinding}
+            onmouseenter={() => isHovered = true}
+            onmouseleave={() => isHovered = false}
     >
         <span class="name">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</span>
 

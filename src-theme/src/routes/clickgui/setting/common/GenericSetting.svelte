@@ -20,58 +20,63 @@
     import CurveSetting from "../CurveSetting.svelte";
     import RegistryMutableListSetting from "../list/RegistryMutableListSetting.svelte";
 
-    export let setting: ModuleSetting;
-    export let path: string;
+    interface Props {
+        setting: ModuleSetting;
+        path: string;
+        onchange?: () => void;
+    }
+
+    let {setting = $bindable(), path, onchange}: Props = $props();
 </script>
 
 
 <div in:slide|global={{duration: 200, axis: "y"}} out:slide|global={{duration: 200, axis: "y"}}>
     {#if setting.valueType === "BOOLEAN"}
-        <BooleanSetting bind:setting={setting} on:change/>
+        <BooleanSetting bind:setting {onchange}/>
     {:else if setting.valueType === "CHOICE"}
-        <ChoiceSetting {path} bind:setting={setting} on:change/>
+        <ChoiceSetting {path} bind:setting {onchange}/>
     {:else if setting.valueType === "FILE"}
-        <FileSetting bind:setting={setting} on:change/>
+        <FileSetting bind:setting {onchange}/>
     {:else if setting.valueType === "CHOOSE"}
-        <ChooseSetting bind:setting={setting} on:change/>
+        <ChooseSetting bind:setting {onchange}/>
     {:else if setting.valueType === "MULTI_CHOOSE"}
-        <MultiChooseSetting {path} bind:setting={setting} on:change/>
+        <MultiChooseSetting {path} bind:setting {onchange}/>
     {:else if setting.valueType === "TOGGLEABLE"}
-        <TogglableSetting {path} bind:setting={setting} on:change/>
+        <TogglableSetting {path} bind:setting {onchange}/>
     {:else if setting.valueType === "INT"}
-        <SliderSetting kind="int" mode="single" bind:setting={setting} on:change/>
+        <SliderSetting kind="int" mode="single" bind:setting {onchange}/>
     {:else if setting.valueType === "INT_RANGE"}
-        <SliderSetting kind="int" mode="range" bind:setting={setting} on:change/>
+        <SliderSetting kind="int" mode="range" bind:setting {onchange}/>
     {:else if setting.valueType === "FLOAT"}
-        <SliderSetting kind="float" mode="single" bind:setting={setting} on:change/>
+        <SliderSetting kind="float" mode="single" bind:setting {onchange}/>
     {:else if setting.valueType === "FLOAT_RANGE"}
-        <SliderSetting kind="float" mode="range" bind:setting={setting} on:change/>
+        <SliderSetting kind="float" mode="range" bind:setting {onchange}/>
     {:else if setting.valueType === "CONFIGURABLE"}
-        <ConfigurableSetting {path} bind:setting={setting} on:change/>
+        <ConfigurableSetting {path} bind:setting {onchange}/>
     {:else if setting.valueType === "COLOR"}
-        <ColorSetting bind:setting={setting} on:change/>
+        <ColorSetting bind:setting {onchange}/>
     {:else if setting.valueType === "TEXT"}
-        <TextSetting bind:setting={setting} on:change/>
+        <TextSetting bind:setting {onchange}/>
     {:else if setting.valueType === "MUTABLE_LIST" }
-        <MutableListSetting bind:setting={setting} on:change/>
+        <MutableListSetting bind:setting {onchange}/>
     {:else if setting.valueType === "ITEM_LIST" }
-        <ItemListSetting {path} bind:setting={setting} on:change/>
+        <ItemListSetting {path} bind:setting {onchange}/>
     {:else if setting.valueType === "REGISTRY_LIST" }
-        <RegistryListSetting {path} bind:setting={setting} on:change/>
+        <RegistryListSetting {path} bind:setting {onchange}/>
     {:else if setting.valueType === "REGISTRY_MUTABLE_LIST" }
-        <RegistryMutableListSetting {path} bind:setting={setting} on:change/>
+        <RegistryMutableListSetting {path} bind:setting {onchange}/>
     {:else if setting.valueType === "BIND"}
-        <BindSetting bind:setting={setting} on:change/>
+        <BindSetting bind:setting {onchange}/>
     {:else if setting.valueType === "VECTOR3_I" }
-        <VectorSetting vecAxes={["x", "y", "z"]} step={1} bind:setting={setting} on:change/>
+        <VectorSetting vecAxes={["x", "y", "z"]} step={1} bind:setting {onchange}/>
     {:else if setting.valueType === "VECTOR3_D" }
-        <VectorSetting vecAxes={["x", "y", "z"]} step={0.01} bind:setting={setting} on:change/>
+        <VectorSetting vecAxes={["x", "y", "z"]} step={0.01} bind:setting {onchange}/>
     {:else if setting.valueType === "VECTOR2_F" }
-        <VectorSetting vecAxes={["x", "y"]} step={0.01} bind:setting={setting} on:change/>
+        <VectorSetting vecAxes={["x", "y"]} step={0.01} bind:setting {onchange}/>
     {:else if setting.valueType === "KEY"}
-        <KeySetting bind:setting={setting} on:change/>
+        <KeySetting bind:setting {onchange}/>
     {:else if setting.valueType === "CURVE"}
-        <CurveSetting {path} bind:setting={setting} on:change/>
+        <CurveSetting {path} bind:setting {onchange}/>
     {:else}
         <div style="color: var(--clickgui-text-color)">Unsupported setting {setting.valueType}</div>
     {/if}

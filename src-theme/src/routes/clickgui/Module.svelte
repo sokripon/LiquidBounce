@@ -126,7 +126,7 @@
     {#if expanded && configurable}
         <div class="settings">
             {#each configurable.value as setting (setting.name)}
-                <GenericSetting {path} bind:setting on:change={updateModuleSettings}/>
+                <GenericSetting {path} bind:setting onchange={updateModuleSettings}/>
             {/each}
         </div>
     {/if}

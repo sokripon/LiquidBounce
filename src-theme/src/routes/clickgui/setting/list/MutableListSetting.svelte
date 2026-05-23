@@ -1,5 +1,4 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
     import type {ListSetting, ModuleSetting} from "../../../../integration/types";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../../theme/theme_config";
     import RemoveButton from "../common/RemoveButton.svelte";
@@ -7,18 +6,16 @@
 
     interface Props {
         setting: ModuleSetting;
+        onchange?: () => void;
     }
 
-    let {setting = $bindable()}: Props = $props();
+    let {setting = $bindable(), onchange}: Props = $props();
 
     const cSetting = $derived(setting as ListSetting);
 
-    // Boundary-compatible event for the legacy GenericSetting parent (`on:change`).
-    const dispatch = createEventDispatcher();
-
     function commit(newValue: string[]) {
         setting = {...cSetting, value: newValue};
-        dispatch("change");
+        onchange?.();
     }
 
     function updateAt(index: number, next: string) {

@@ -1,7 +1,7 @@
 <script lang="ts">
     import type {CurveSetting, ModuleSetting} from "../../../integration/types";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
-    import {createEventDispatcher, onDestroy, onMount} from "svelte";
+    import {onDestroy, onMount, untrack} from "svelte";
     import {
         Chart,
         type Chart as ChartJS,
@@ -17,21 +17,26 @@
     import ExpandArrow from "./common/ExpandArrow.svelte";
     import {setItem} from "../../../integration/persistent_storage";
 
-    export let setting: ModuleSetting;
-    export let path: string;
+    interface Props {
+        setting: ModuleSetting;
+        path: string;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as CurveSetting;
+    let {setting = $bindable(), path, onchange}: Props = $props();
 
-    const dispatch = createEventDispatcher();
+    const cSetting = $derived(setting as CurveSetting);
+    const thisPath = $derived(`${path}.${cSetting.name}`);
 
-    const thisPath = `${path}.${cSetting.name}`;
-    let expanded = localStorage.getItem(thisPath) === "true";
+    let expanded = $state(untrack(() => localStorage.getItem(`${path}.${(setting as CurveSetting).name}`) === "true"));
 
-    $: setItem(thisPath, expanded.toString());
+    $effect(() => {
+        setItem(thisPath, expanded.toString());
+    });
 
     type TChart = ChartJS<'line', ScatterDataPoint[], unknown>;
 
-    let canvasElement: HTMLCanvasElement;
+    let canvasElement = $state<HTMLCanvasElement>();
     let chart: TChart | null = null;
 
     Chart.register(LinearScale, PointElement, LineElement, LineController, ScatterController, dragDataPlugin);
@@ -86,7 +91,7 @@
         const ds = chart.data.datasets[0] as any;
         cSetting.value = ds.data.map((p: ScatterDataPoint) => ({x: p.x, y: p.y})) as Point[];
         setting = { ...cSetting };
-        dispatch("change");
+        onchange?.();
     }
 
     /**
@@ -156,6 +161,7 @@
     }
 
     onMount(() => {
+        if (!canvasElement) return;
         const ctx = canvasElement.getContext("2d")!;
 
         chart = new Chart(ctx, {
@@ -316,14 +322,14 @@
 </script>
 
 <div class="setting">
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="head" class:expanded on:contextmenu|preventDefault={() => expanded = !expanded}>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="head" class:expanded oncontextmenu={(e) => { e.preventDefault(); expanded = !expanded; }}>
         <div class="title">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</div>
         <ExpandArrow bind:expanded/>
     </div>
 
     <div class="canvas-wrapper" class:visible={expanded}>
-        <canvas on:click={addPoint} on:contextmenu={removePoint}
+        <canvas onclick={addPoint} oncontextmenu={removePoint}
                 bind:this={canvasElement}></canvas>
     </div>
 </div>

@@ -1,18 +1,17 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
+    interface Props {
+        expanded: boolean;
+    }
 
-    export let expanded: boolean;
-
-    const dispatch = createEventDispatcher();
+    let {expanded = $bindable()}: Props = $props();
 
     function handleClick() {
         expanded = !expanded;
-        dispatch("click");
     }
 </script>
 
 <!-- svelte-ignore a11y_consider_explicit_label -->
-<button class="arrow" class:expanded on:click={handleClick}
+<button class="arrow" class:expanded onclick={handleClick}
 ></button>
 
 <style lang="scss">

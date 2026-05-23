@@ -2,29 +2,31 @@
     import type {KeySetting, ModuleSetting} from "../../../integration/types";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
     import {getPrintableKeyName} from "../../../integration/rest";
-    import {createEventDispatcher} from "svelte";
     import {listen} from "../../../integration/ws";
     import type {KeyboardKeyEvent, MouseButtonEvent} from "../../../integration/events";
     import {isClickGuiScreen, UNKNOWN_KEY} from "../../../util/utils";
 
-    export let setting: ModuleSetting;
+    interface Props {
+        setting: ModuleSetting;
+        onchange?: () => void;
+    }
 
-    const cSetting = setting as KeySetting;
+    let {setting = $bindable(), onchange}: Props = $props();
 
-    const dispatch = createEventDispatcher();
+    const cSetting = $derived(setting as KeySetting);
 
-    let isHovered = false;
-    let binding = false;
-    let printableKeyName = "";
+    let isHovered = $state(false);
+    let binding = $state(false);
+    let printableKeyName = $state("");
 
-    $: {
+    $effect(() => {
         if (cSetting.value !== UNKNOWN_KEY) {
             getPrintableKeyName(cSetting.value)
                 .then(printableKey => {
                     printableKeyName = printableKey.localized;
                 });
         }
-    }
+    });
 
     async function toggleBinding() {
         if (binding) {
@@ -34,8 +36,7 @@
         binding = !binding;
 
         setting = {...cSetting};
-
-        dispatch("change");
+        onchange?.();
     }
 
     listen("keyboardKey", async (e: KeyboardKeyEvent) => {
@@ -56,8 +57,7 @@
         }
 
         setting = {...cSetting};
-
-        dispatch("change");
+        onchange?.();
     });
 
     listen("mouseButton", async (e: MouseButtonEvent) => {
@@ -74,17 +74,16 @@
         cSetting.value = e.key;
 
         setting = {...cSetting};
-
-        dispatch("change");
-    })
+        onchange?.();
+    });
 </script>
 
 <div class="setting">
     <button
             class="change-bind"
-            on:click={toggleBinding}
-            on:mouseenter={() => isHovered = true}
-            on:mouseleave={() => isHovered = false}
+            onclick={toggleBinding}
+            onmouseenter={() => isHovered = true}
+            onmouseleave={() => isHovered = false}
     >
         {#if !binding}
             <div class="name">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}:</div>
