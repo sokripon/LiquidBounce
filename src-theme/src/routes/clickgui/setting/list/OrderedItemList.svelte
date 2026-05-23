@@ -1,7 +1,7 @@
 <script lang="ts">
     import type {NamedItem} from "../../../../integration/types";
     import {SortableList} from "@jhubbardsf/svelte-sortablejs";
-    import ItemIcon from "./ItemIcon.svelte";
+    import ListItem from "./ListItem.svelte";
     import RemoveButton from "../common/RemoveButton.svelte";
     import SettingButton from "../common/SettingButton.svelte";
 
@@ -24,41 +24,45 @@
     }
 </script>
 
+{#snippet dragHandle()}
+    <span class="drag-handle" aria-hidden="true">
+        <span class="dot"></span><span class="dot"></span>
+        <span class="dot"></span><span class="dot"></span>
+        <span class="dot"></span><span class="dot"></span>
+    </span>
+{/snippet}
+
 <div class="ordered-list">
     <div class="results">
-    <div class="sortable-role-wrap" role="list">
-    <SortableList class="ordered-list-rows" onSort={handleSort} animation={150}
-                  forceFallback={true} draggable=".item-row">
-        {#each items as item, index (item.value)}
-            <div class="item-row" class:has-icon={item.icon !== undefined} role="listitem">
-                <span class="drag-handle" aria-hidden="true">
-                    <span class="dot"></span><span class="dot"></span>
-                    <span class="dot"></span><span class="dot"></span>
-                    <span class="dot"></span><span class="dot"></span>
-                </span>
-                {#if item.icon}
-                    <ItemIcon src={item.icon} alt={item.value} size={20}/>
-                {/if}
-                <div class="name">{item.name}</div>
-                <div class="controls">
-                    <div class="arrow-column">
-                        {#if index > 0}
-                            <button class="arrow-btn" onclick={() => onmove(item.value, -1)} title="Move up" aria-label="Move up">▲</button>
-                        {:else}
-                            <span class="arrow-placeholder" aria-hidden="true"></span>
-                        {/if}
-                        {#if index < items.length - 1}
-                            <button class="arrow-btn" onclick={() => onmove(item.value, 1)} title="Move down" aria-label="Move down">▼</button>
-                        {:else}
-                            <span class="arrow-placeholder" aria-hidden="true"></span>
-                        {/if}
+        <div class="sortable-role-wrap" role="list">
+            <SortableList class="ordered-list-rows" onSort={handleSort} animation={150}
+                          forceFallback={true} draggable=".item-row">
+                {#each items as item, index (item.value)}
+                    <div class="item-row" role="listitem">
+                        <ListItem value={item.value} name={item.name} icon={item.icon}
+                                  leading={dragHandle}>
+                            {#snippet trailing()}
+                                <div class="controls">
+                                    <div class="arrow-column">
+                                        {#if index > 0}
+                                            <button class="arrow-btn" onclick={() => onmove(item.value, -1)} title="Move up" aria-label="Move up">▲</button>
+                                        {:else}
+                                            <span class="arrow-placeholder" aria-hidden="true"></span>
+                                        {/if}
+                                        {#if index < items.length - 1}
+                                            <button class="arrow-btn" onclick={() => onmove(item.value, 1)} title="Move down" aria-label="Move down">▼</button>
+                                        {:else}
+                                            <span class="arrow-placeholder" aria-hidden="true"></span>
+                                        {/if}
+                                    </div>
+                                    <RemoveButton onclick={() => onremove(item.value)}/>
+                                </div>
+                            {/snippet}
+                        </ListItem>
                     </div>
-                    <RemoveButton onclick={() => onremove(item.value)}/>
-                </div>
-            </div>
-        {/each}
-    </SortableList>
-    </div>
+                {/each}
+            </SortableList>
+        </div>
     </div>
     <SettingButton label={addLabel} onclick={onadd}/>
 </div>
@@ -84,18 +88,9 @@
     }
 
     .item-row {
-        display: grid;
-        grid-template-columns: max-content 1fr max-content;
-        align-items: center;
-        column-gap: 5px;
-        margin: 2px 5px 2px 0;
         cursor: grab;
         border-radius: 3px;
         transition: background-color 0.15s ease;
-
-        &.has-icon {
-            grid-template-columns: max-content max-content 1fr max-content;
-        }
 
         &:hover {
             background-color: rgba(255, 255, 255, 0.05);
@@ -115,6 +110,7 @@
         opacity: 0.4;
         cursor: grab;
         user-select: none;
+        transition: opacity 0.15s ease;
 
         .dot {
             width: 3px;
@@ -126,14 +122,6 @@
 
     .item-row:hover .drag-handle {
         opacity: 0.7;
-    }
-
-    .name {
-        font-size: 12px;
-        color: var(--clickgui-text-color);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        overflow: hidden;
     }
 
     .controls {
