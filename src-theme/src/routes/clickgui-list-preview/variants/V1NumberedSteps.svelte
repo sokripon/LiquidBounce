@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
     import type {NamedItem} from "../../../integration/types";
-    import {createDragReorder} from "../../clickgui/setting/list/dragReorder.svelte";
+    import {SortableList} from "@jhubbardsf/svelte-sortablejs";
     import {createItemChooser} from "../../clickgui/setting/list/itemChooser.svelte";
     import ItemIcon from "../../clickgui/setting/list/ItemIcon.svelte";
 
@@ -22,7 +22,13 @@
 
     let {items, availableItems, addLabel = "Add Step", onmove, onreorder, onremove, onselect}: Props = $props();
 
-    const dnd = createDragReorder({onreorder: (from, to) => onreorder(from, to), axis: "vertical"});
+    function handleSort(e: any) {
+        const from = e.oldIndex, to = e.newIndex;
+        if (typeof from === "number" && typeof to === "number" && from !== to) {
+            onreorder(from, to);
+        }
+    }
+
     let inputEl: HTMLInputElement | undefined = $state();
     const chooser = createItemChooser({
         availableItems: () => availableItems,
@@ -31,28 +37,29 @@
     });
 </script>
 
-<div class="steps" role="list">
-    {#each items as item, index (item.value)}
-        <div class="step {dnd.classesFor(index)}"
-             role="listitem"
-             {...dnd.attrs(index)}>
-            <div class="badge">{index + 1}</div>
-            <div class="body">
-                {#if item.icon}
-                    <ItemIcon src={item.icon} size={22}/>
-                {/if}
-                <span class="name">{item.name}</span>
-                <div class="controls">
-                    <button class="ctrl" disabled={index === 0} title="Move up"
-                            onclick={() => onmove(item.value, -1)}>▲</button>
-                    <button class="ctrl" disabled={index === items.length - 1} title="Move down"
-                            onclick={() => onmove(item.value, 1)}>▼</button>
-                    <button class="ctrl remove" title="Remove"
-                            onclick={() => onremove(item.value)}>×</button>
+<div class="steps">
+    <SortableList class="steps-rows" onSort={handleSort} animation={150}
+                  forceFallback={true} draggable=".step">
+        {#each items as item, index (item.value)}
+            <div class="step" role="listitem">
+                <div class="badge">{index + 1}</div>
+                <div class="body">
+                    {#if item.icon}
+                        <ItemIcon src={item.icon} size={22}/>
+                    {/if}
+                    <span class="name">{item.name}</span>
+                    <div class="controls">
+                        <button class="ctrl" disabled={index === 0} title="Move up"
+                                onclick={() => onmove(item.value, -1)}>▲</button>
+                        <button class="ctrl" disabled={index === items.length - 1} title="Move down"
+                                onclick={() => onmove(item.value, 1)}>▼</button>
+                        <button class="ctrl remove" title="Remove"
+                                onclick={() => onremove(item.value)}>×</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    {/each}
+        {/each}
+    </SortableList>
     {#if chooser.open}
         <div class="step ghost" role="listitem">
             <div class="badge ghost-badge">{items.length + 1}</div>
@@ -93,20 +100,20 @@
         position: relative;
     }
 
+    :global(.steps-rows) {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
     .step {
         display: flex;
         align-items: stretch;
         gap: 10px;
         position: relative;
         cursor: grab;
-        border-top: 2px solid transparent;
-        border-bottom: 2px solid transparent;
-        transition: opacity 0.15s ease;
 
         &:active { cursor: grabbing; }
-        &.dragging { opacity: 0.4; }
-        &.drop-before { border-top-color: var(--accent-color); }
-        &.drop-after { border-bottom-color: var(--accent-color); }
 
         &::before {
             content: "";
@@ -194,6 +201,10 @@
         &:hover { background-color: var(--clickgui-button-hover-background-color); }
     }
 
+    .ghost {
+        cursor: default;
+        &::before { display: none; }
+    }
     .ghost .badge.ghost-badge {
         background: color-mix(in srgb, var(--accent-color) 40%, transparent);
     }

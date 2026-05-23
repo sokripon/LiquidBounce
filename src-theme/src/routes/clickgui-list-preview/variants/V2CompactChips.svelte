@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
     import type {NamedItem} from "../../../integration/types";
-    import {createDragReorder} from "../../clickgui/setting/list/dragReorder.svelte";
+    import {SortableList} from "@jhubbardsf/svelte-sortablejs";
     import {createItemChooser} from "../../clickgui/setting/list/itemChooser.svelte";
     import ItemIcon from "../../clickgui/setting/list/ItemIcon.svelte";
 
@@ -23,7 +23,13 @@
     let {items, availableItems, addLabel = "Add", onmove: _onmove, onreorder, onremove, onselect}: Props = $props();
     // onmove intentionally unused — chips rely on DnD only.
 
-    const dnd = createDragReorder({onreorder: (from, to) => onreorder(from, to), axis: "horizontal"});
+    function handleSort(e: any) {
+        const from = e.oldIndex, to = e.newIndex;
+        if (typeof from === "number" && typeof to === "number" && from !== to) {
+            onreorder(from, to);
+        }
+    }
+
     let inputEl: HTMLInputElement | undefined = $state();
     const chooser = createItemChooser({
         availableItems: () => availableItems,
@@ -34,11 +40,10 @@
 
 </script>
 
-<div class="chips" role="list">
+<SortableList class="chips" onSort={handleSort} animation={150}
+              forceFallback={true} direction="horizontal" draggable=".chip">
     {#each items as item, index (item.value)}
-        <div class="chip {dnd.classesFor(index)}"
-             role="listitem"
-             {...dnd.attrs(index)}>
+        <div class="chip" role="listitem">
             <span class="ordinal">{index + 1}</span>
             {#if item.icon}
                 <ItemIcon src={item.icon} size={14}/>
@@ -48,7 +53,7 @@
         </div>
     {/each}
     {#if chooser.open}
-        <div class="chip search-chip" role="listitem">
+        <div class="search-chip">
             <span class="ordinal">+</span>
             <input class="search" type="text" placeholder="Search…"
                    bind:this={inputEl}
@@ -61,7 +66,7 @@
     {:else}
         <button class="add" onclick={chooser.show} title={addLabel}>+</button>
     {/if}
-</div>
+</SortableList>
 {#if chooser.open}
     <div class="suggestions">
         {#if chooser.filtered.length === 0}
@@ -80,7 +85,7 @@
 {/if}
 
 <style lang="scss">
-    .chips {
+    :global(.chips) {
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
@@ -98,15 +103,10 @@
         cursor: grab;
         font-size: 11px;
         color: var(--clickgui-text-color);
-        transition: background 0.15s, transform 0.1s, opacity 0.15s;
-        border-left: 2px solid transparent;
-        border-right: 2px solid transparent;
+        transition: background 0.15s, transform 0.1s;
 
         &:hover { background: color-mix(in srgb, var(--accent-color) 22%, var(--clickgui-base-color)); }
         &:active { cursor: grabbing; }
-        &.dragging { opacity: 0.4; }
-        &.drop-before { border-left-color: var(--accent-color); }
-        &.drop-after { border-right-color: var(--accent-color); }
     }
 
     .ordinal {
@@ -121,12 +121,6 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-    }
-
-    .icon {
-        width: 14px;
-        height: 14px;
-        image-rendering: pixelated;
     }
 
     .name {

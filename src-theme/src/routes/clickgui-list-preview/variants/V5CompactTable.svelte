@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
     import type {NamedItem} from "../../../integration/types";
-    import {createDragReorder} from "../../clickgui/setting/list/dragReorder.svelte";
+    import {SortableList} from "@jhubbardsf/svelte-sortablejs";
     import {createItemChooser} from "../../clickgui/setting/list/itemChooser.svelte";
     import ItemIcon from "../../clickgui/setting/list/ItemIcon.svelte";
 
@@ -22,7 +22,13 @@
 
     let {items, availableItems, addLabel = "Add Item", onmove, onreorder, onremove, onselect}: Props = $props();
 
-    const dnd = createDragReorder({onreorder: (from, to) => onreorder(from, to), axis: "vertical"});
+    function handleSort(e: any) {
+        const from = e.oldIndex, to = e.newIndex;
+        if (typeof from === "number" && typeof to === "number" && from !== to) {
+            onreorder(from, to);
+        }
+    }
+
     let inputEl: HTMLInputElement | undefined = $state();
     const chooser = createItemChooser({
         availableItems: () => availableItems,
@@ -38,11 +44,10 @@
         <span class="col-name">Item</span>
         <span class="col-actions">Actions</span>
     </div>
-    <div class="tbody" role="list">
+    <SortableList class="tbody" onSort={handleSort} animation={150}
+                  forceFallback={true} draggable=".trow">
         {#each items as item, index (item.value)}
-            <div class="trow {dnd.classesFor(index)}"
-                 role="listitem"
-                 {...dnd.attrs(index)}>
+            <div class="trow" role="listitem">
                 <span class="col-num">{index + 1}</span>
                 <span class="col-icon">
                     {#if item.icon}
@@ -60,7 +65,7 @@
                 </span>
             </div>
         {/each}
-    </div>
+    </SortableList>
     {#if chooser.open}
         <div class="trow add-row">
             <span class="col-num">+</span>
@@ -124,15 +129,11 @@
         border-top: 1px solid color-mix(in srgb, var(--accent-color) 8%, transparent);
         cursor: grab;
         color: var(--clickgui-text-color);
-        transition: background 0.12s, opacity 0.15s;
-        border-bottom: 2px solid transparent;
+        transition: background 0.12s;
         margin-top: -1px;
 
         &:hover { background: color-mix(in srgb, var(--accent-color) 10%, transparent); }
         &:active { cursor: grabbing; }
-        &.dragging { opacity: 0.4; }
-        &.drop-before { border-top-color: var(--accent-color); }
-        &.drop-after { border-bottom-color: var(--accent-color); }
         &:nth-child(even) { background: color-mix(in srgb, #fff 2%, transparent); }
     }
 

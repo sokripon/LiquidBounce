@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
     import type {NamedItem} from "../../../integration/types";
-    import {createDragReorder} from "../../clickgui/setting/list/dragReorder.svelte";
+    import {SortableList} from "@jhubbardsf/svelte-sortablejs";
     import {createItemChooser} from "../../clickgui/setting/list/itemChooser.svelte";
     import ItemIcon from "../../clickgui/setting/list/ItemIcon.svelte";
 
@@ -22,7 +22,13 @@
 
     let {items, availableItems, addLabel = "Add", onmove: _onmove, onreorder, onremove, onselect}: Props = $props();
 
-    const dnd = createDragReorder({onreorder: (from, to) => onreorder(from, to), axis: "horizontal"});
+    function handleSort(e: any) {
+        const from = e.oldIndex, to = e.newIndex;
+        if (typeof from === "number" && typeof to === "number" && from !== to) {
+            onreorder(from, to);
+        }
+    }
+
     let inputEl: HTMLInputElement | undefined = $state();
     const chooser = createItemChooser({
         availableItems: () => availableItems,
@@ -31,12 +37,10 @@
     });
 </script>
 
-<div class="hotbar" role="list">
+<SortableList class="hotbar" onSort={handleSort} animation={150}
+              forceFallback={true} direction="horizontal" draggable=".slot:not(.add)">
     {#each items as item, index (item.value)}
-        <div class="slot {dnd.classesFor(index)}"
-             role="listitem"
-             title={item.name}
-             {...dnd.attrs(index)}>
+        <div class="slot" role="listitem" title={item.name}>
             <span class="number">{index + 1}</span>
             <ItemIcon src={item.icon} alt={item.name} size={26} placeholder/>
             <button class="remove" title="Remove {item.name}"
@@ -45,7 +49,7 @@
     {/each}
     <button class="slot add" class:active={chooser.open} title={addLabel}
             onclick={chooser.toggle}>+</button>
-</div>
+</SortableList>
 {#if chooser.open}
     <div class="palette">
         <div class="palette-header">
@@ -72,7 +76,7 @@
 {/if}
 
 <style lang="scss">
-    .hotbar {
+    :global(.hotbar) {
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
@@ -93,17 +97,13 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: border-color 0.15s, transform 0.1s, opacity 0.15s;
-        outline-offset: -2px;
+        transition: border-color 0.15s, transform 0.1s;
 
         &:hover {
             border-color: var(--accent-color);
             transform: translateY(-1px);
         }
         &:active { cursor: grabbing; }
-        &.dragging { opacity: 0.4; }
-        &.drop-before { outline: 2px solid var(--accent-color); outline-offset: -4px; }
-        &.drop-after { outline: 2px solid var(--accent-color); outline-offset: -4px; }
     }
 
     .number {
@@ -115,17 +115,6 @@
         color: white;
         text-shadow: 1px 1px 0 #000;
         pointer-events: none;
-    }
-
-    .icon {
-        width: 26px;
-        height: 26px;
-        image-rendering: pixelated;
-    }
-
-    .placeholder {
-        color: color-mix(in srgb, var(--clickgui-text-color) 40%, transparent);
-        font-size: 18px;
     }
 
     .remove {

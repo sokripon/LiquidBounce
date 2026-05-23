@@ -1,6 +1,6 @@
 <script lang="ts">
     import type {NamedItem} from "../../../../integration/types";
-    import {createDragReorder} from "./dragReorder.svelte";
+    import {SortableList} from "@jhubbardsf/svelte-sortablejs";
     import ItemIcon from "./ItemIcon.svelte";
     import RemoveButton from "../common/RemoveButton.svelte";
     import SettingButton from "../common/SettingButton.svelte";
@@ -16,42 +16,55 @@
 
     let {items, addLabel = "Add Item", onmove, onreorder, onremove, onadd}: Props = $props();
 
-    const dnd = createDragReorder({onreorder: (from, to) => onreorder(from, to), axis: "vertical"});
+    function handleSort(e: any) {
+        const from = e.oldIndex, to = e.newIndex;
+        if (typeof from === "number" && typeof to === "number" && from !== to) {
+            onreorder(from, to);
+        }
+    }
 </script>
 
-<div class="ordered-list" role="list">
-    {#each items as item, index (item.value)}
-        <div class="item-row {dnd.classesFor(index)}"
-             role="listitem"
-             {...dnd.attrs(index)}>
-            <span class="drag-handle" aria-hidden="true">⋮⋮</span>
-            {#if item.icon}
-                <ItemIcon src={item.icon} alt={item.value} size={20}/>
-            {/if}
-            <div class="name">{item.name}</div>
-            <div class="controls">
-                <div class="arrow-column">
-                    {#if index > 0}
-                        <button class="arrow-btn" onclick={() => onmove(item.value, -1)} title="Move up">▲</button>
-                    {:else}
-                        <span class="arrow-placeholder"></span>
-                    {/if}
-                    {#if index < items.length - 1}
-                        <button class="arrow-btn" onclick={() => onmove(item.value, 1)} title="Move down">▼</button>
-                    {:else}
-                        <span class="arrow-placeholder"></span>
-                    {/if}
+<div class="ordered-list">
+    <SortableList class="ordered-list-rows" onSort={handleSort} animation={150}
+                  forceFallback={true} draggable=".item-row">
+        {#each items as item, index (item.value)}
+            <div class="item-row" role="listitem">
+                <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+                {#if item.icon}
+                    <ItemIcon src={item.icon} alt={item.value} size={20}/>
+                {/if}
+                <div class="name">{item.name}</div>
+                <div class="controls">
+                    <div class="arrow-column">
+                        {#if index > 0}
+                            <button class="arrow-btn" onclick={() => onmove(item.value, -1)} title="Move up">▲</button>
+                        {:else}
+                            <span class="arrow-placeholder"></span>
+                        {/if}
+                        {#if index < items.length - 1}
+                            <button class="arrow-btn" onclick={() => onmove(item.value, 1)} title="Move down">▼</button>
+                        {:else}
+                            <span class="arrow-placeholder"></span>
+                        {/if}
+                    </div>
+                    <RemoveButton onclick={() => onremove(item.value)}/>
                 </div>
-                <RemoveButton onclick={() => onremove(item.value)}/>
             </div>
-        </div>
-    {/each}
+        {/each}
+    </SortableList>
     <SettingButton label={addLabel} onclick={onadd}/>
 </div>
 
 <style lang="scss">
     .ordered-list {
         margin-bottom: 10px;
+    }
+
+    :global(.ordered-list-rows) {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 5px;
     }
 
     .item-row {
@@ -61,26 +74,10 @@
         padding: 5px;
         background-color: color-mix(in srgb, var(--clickgui-base-color) 10%, transparent);
         border-radius: 3px;
-        margin-bottom: 5px;
         cursor: grab;
-        border-top: 2px solid transparent;
-        border-bottom: 2px solid transparent;
-        transition: opacity 0.15s ease;
 
         &:active {
             cursor: grabbing;
-        }
-
-        &.dragging {
-            opacity: 0.4;
-        }
-
-        &.drop-before {
-            border-top-color: var(--accent-color);
-        }
-
-        &.drop-after {
-            border-bottom-color: var(--accent-color);
         }
 
         .drag-handle {
@@ -134,3 +131,4 @@
         }
     }
 </style>
+
