@@ -34,12 +34,12 @@
 
     let activeTab = parseInt(localStorage.getItem("altmanager_add_account_active_tab") ?? "0");
 
-    async function handleChangeTab(e: CustomEvent<{ activeTab: number }>) {
-        activeTab = e.detail.activeTab;
-        await setItem("altmanager_add_account_active_tab", e.detail.activeTab.toString());
+    async function handleChangeTab(newActiveTab: number) {
+        activeTab = newActiveTab;
+        await setItem("altmanager_add_account_active_tab", newActiveTab.toString());
     }
 </script>
 
 <Modal title="Add Account" bind:visible={visible}>
-    <Tabs {tabs} {activeTab} on:changeTab={handleChangeTab}/>
+    <Tabs {tabs} {activeTab} onchangeTab={handleChangeTab}/>
 </Modal>

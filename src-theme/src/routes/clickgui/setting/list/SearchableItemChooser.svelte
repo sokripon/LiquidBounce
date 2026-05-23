@@ -39,8 +39,10 @@
         {#if filteredItems.length === 0}
             <div class="empty">{items.length === 0 ? "No items available" : "No matches"}</div>
         {:else}
-            <VirtualList items={filteredItems} resetScrollOnItemsChange={false} let:item>
-                <SelectableListItem value={item.value} name={item.name} icon={item.icon} {onselect}/>
+            <VirtualList items={filteredItems} resetScrollOnItemsChange={false}>
+                {#snippet item(item)}
+                    <SelectableListItem value={item.value} name={item.name} icon={item.icon} {onselect}/>
+                {/snippet}
             </VirtualList>
         {/if}
     </div>

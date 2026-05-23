@@ -1,30 +1,35 @@
 <script lang="ts">
-    import {type ComponentType, createEventDispatcher} from "svelte";
+    import type {Component} from "svelte";
 
-    let availableTabsElement: HTMLElement | undefined;
+    interface Tab {
+        title: string;
+        icon: string;
+        component: Component<any> | any;
+    }
 
-    export let tabs: {
-        title: string,
-        icon: string,
-        component: ComponentType,
-    }[];
-    export let activeTab = 0;
+    interface Props {
+        tabs: Tab[];
+        activeTab?: number;
+        onchangeTab?: (activeTab: number) => void;
+    }
 
-    const dispatch = createEventDispatcher<{
-        changeTab: { activeTab: number }
-    }>();
+    let {tabs, activeTab = $bindable(0), onchangeTab}: Props = $props();
+
+    let availableTabsElement: HTMLElement | undefined = $state();
 
     function setActiveTab(i: number) {
         activeTab = i;
-        dispatch("changeTab", {activeTab});
+        onchangeTab?.(activeTab);
     }
+
+    const ActiveComponent = $derived(tabs[activeTab].component);
 </script>
 
 <div class="tabs">
     <div class="available-tabs" bind:this={availableTabsElement}>
-        {#each tabs as {title, icon}, index}
+        {#each tabs as {title, icon}, index (title)}
             <button class="tab-button" class:active={tabs[activeTab].title === title}
-                    on:click={() => setActiveTab(index)}>
+                    onclick={() => setActiveTab(index)}>
                 <img class="icon" src="img/menu/altmanager/{icon}" alt={title}>
                 <span>{title}</span>
             </button>
@@ -32,7 +37,7 @@
     </div>
 
     <div style="width: {availableTabsElement?.clientWidth}px">
-        <svelte:component this={tabs[activeTab].component}/>
+        <ActiveComponent/>
     </div>
 </div>
 

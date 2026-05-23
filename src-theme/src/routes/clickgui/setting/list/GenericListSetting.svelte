@@ -54,9 +54,11 @@
         <div in:slide|global={{duration: 200, axis: "y"}} out:slide|global={{duration: 200, axis: "y"}}>
             <input type="text" placeholder="Search" class="search-input" bind:value={searchQuery} spellcheck="false">
             <div class="results">
-                <VirtualList items={renderedItems} let:item>
-                    <ListItem value={item.value} name={item.name} icon={item.icon}
-                            enabled={cSetting.value.includes(item.value)} ontoggle={handleItemToggle}/>
+                <VirtualList items={renderedItems}>
+                    {#snippet item(item)}
+                        <ListItem value={item.value} name={item.name} icon={item.icon}
+                                enabled={cSetting.value.includes(item.value)} ontoggle={handleItemToggle}/>
+                    {/snippet}
                 </VirtualList>
             </div>
         </div>
