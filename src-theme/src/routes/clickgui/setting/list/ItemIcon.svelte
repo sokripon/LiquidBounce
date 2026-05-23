@@ -21,18 +21,17 @@
 
     let {src, alt = "", size = 20, placeholder = false}: Props = $props();
 
-    let errored = $state(false);
+    const FALLBACK_SRC = itemTextureUrl("minecraft:grass_block");
 
-    function handleError(event: Event) {
-        errored = true;
-        (event.currentTarget as HTMLImageElement).src = itemTextureUrl("minecraft:grass_block");
-    }
+    let erroredSrc = $state<string | undefined>(undefined);
+    const errored = $derived(src !== undefined && erroredSrc === src);
+    const displayedSrc = $derived(errored ? FALLBACK_SRC : src);
 </script>
 
 {#if src}
     <img class="icon" class:fallback={errored}
          style:--icon-size="{size}px"
-         {src} {alt} onerror={handleError}/>
+         src={displayedSrc} {alt} onerror={() => erroredSrc = src}/>
 {:else if placeholder}
     <span class="placeholder" style:--icon-size="{size}px" aria-hidden="true">?</span>
 {/if}

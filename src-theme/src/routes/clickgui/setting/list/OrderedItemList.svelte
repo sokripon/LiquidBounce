@@ -1,6 +1,7 @@
 <script lang="ts">
     import type {NamedItem} from "../../../../integration/types";
     import {SortableList} from "@jhubbardsf/svelte-sortablejs";
+    import type {SortableEvent} from "sortablejs";
     import ListItem from "./ListItem.svelte";
     import RemoveButton from "../common/RemoveButton.svelte";
     import SettingButton from "../common/SettingButton.svelte";
@@ -16,7 +17,7 @@
 
     let {items, addLabel = "Add Item", onmove, onreorder, onremove, onadd}: Props = $props();
 
-    function handleSort(e: any) {
+    function handleSort(e: SortableEvent) {
         const from = e.oldIndex, to = e.newIndex;
         if (typeof from === "number" && typeof to === "number" && from !== to) {
             onreorder(from, to);

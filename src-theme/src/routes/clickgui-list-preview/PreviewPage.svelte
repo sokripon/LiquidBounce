@@ -95,14 +95,39 @@
         return pool.filter(p => !panel.items.some(i => i.value === p.value));
     }
 
-    const variants: {title: string; note: string; component: VariantComponent | null; panel: PanelState; baseline: boolean}[] = [
-        {title: "Current — Stacked Rows", note: "Shipped baseline. Vertical rows, drag handle, arrow buttons.", component: null, panel: p0, baseline: true},
-        {title: "V1 — Numbered Steps", note: "Recipe-style timeline with badge ordinals and a connecting rail.", component: V1NumberedSteps, panel: p1, baseline: false},
-        {title: "V2 — Compact Chips", note: "Inline wrap-flow chips. Smallest footprint, scales to long lists.", component: V2CompactChips, panel: p2, baseline: false},
-        {title: "V3 — Hotbar Slots", note: "Minecraft hotbar feel. Icon-first, hover reveals remove.", component: V3HotbarSlots, panel: p3, baseline: false},
-        {title: "V4 — Card Grid", note: "Grid of cards. Icon prominent, controls in hover footer.", component: V4CardGrid, panel: p4, baseline: false},
-        {title: "V5 — Compact Table", note: "Dense table. Highest information density, power-user feel.", component: V5CompactTable, panel: p5, baseline: false},
-    ];
+    const h0 = makeHandlers(p0);
+    const h1 = makeHandlers(p1);
+    const h2 = makeHandlers(p2);
+    const h3 = makeHandlers(p3);
+    const h4 = makeHandlers(p4);
+    const h5 = makeHandlers(p5);
+
+    const a0 = $derived(availableFor(p0));
+    const a1 = $derived(availableFor(p1));
+    const a2 = $derived(availableFor(p2));
+    const a3 = $derived(availableFor(p3));
+    const a4 = $derived(availableFor(p4));
+    const a5 = $derived(availableFor(p5));
+
+    type Handlers = ReturnType<typeof makeHandlers>;
+    type Variant = {
+        title: string;
+        note: string;
+        component: VariantComponent | null;
+        panel: PanelState;
+        baseline: boolean;
+        handlers: Handlers;
+        availableItems: NamedItem[];
+    };
+
+    const variants: Variant[] = $derived([
+        {title: "Current — Stacked Rows", note: "Shipped baseline. Vertical rows, drag handle, arrow buttons.", component: null, panel: p0, baseline: true, handlers: h0, availableItems: a0},
+        {title: "V1 — Numbered Steps", note: "Recipe-style timeline with badge ordinals and a connecting rail.", component: V1NumberedSteps, panel: p1, baseline: false, handlers: h1, availableItems: a1},
+        {title: "V2 — Compact Chips", note: "Inline wrap-flow chips. Smallest footprint, scales to long lists.", component: V2CompactChips, panel: p2, baseline: false, handlers: h2, availableItems: a2},
+        {title: "V3 — Hotbar Slots", note: "Minecraft hotbar feel. Icon-first, hover reveals remove.", component: V3HotbarSlots, panel: p3, baseline: false, handlers: h3, availableItems: a3},
+        {title: "V4 — Card Grid", note: "Grid of cards. Icon prominent, controls in hover footer.", component: V4CardGrid, panel: p4, baseline: false, handlers: h4, availableItems: a4},
+        {title: "V5 — Compact Table", note: "Dense table. Highest information density, power-user feel.", component: V5CompactTable, panel: p5, baseline: false, handlers: h5, availableItems: a5},
+    ]);
 </script>
 
 <div class="page">
@@ -114,7 +139,6 @@
 
         <div class="window-body">
             {#each variants as variant, idx (variant.title)}
-                {@const handlers = makeHandlers(variant.panel)}
                 <section class="setting-section" class:first={idx === 0}>
                     <div class="setting-head">
                         <div class="setting-label">
@@ -123,26 +147,26 @@
                                 <span class="badge-baseline">Baseline</span>
                             {/if}
                         </div>
-                        <button class="reset" onclick={handlers.onreset} title="Reset this section">Reset</button>
+                        <button class="reset" onclick={variant.handlers.onreset} title="Reset this section">Reset</button>
                     </div>
                     <div class="setting-note">{variant.note}</div>
                     <div class="setting-body">
                         {#if variant.baseline}
                             <OrderedItemList
                                 items={variant.panel.items}
-                                onmove={handlers.onmove}
-                                onreorder={handlers.onreorder}
-                                onremove={handlers.onremove}
-                                onadd={handlers.onadd}/>
+                                onmove={variant.handlers.onmove}
+                                onreorder={variant.handlers.onreorder}
+                                onremove={variant.handlers.onremove}
+                                onadd={variant.handlers.onadd}/>
                         {:else if variant.component}
                             {@const Component = variant.component}
                             <Component
                                 items={variant.panel.items}
-                                availableItems={availableFor(variant.panel)}
-                                onmove={handlers.onmove}
-                                onreorder={handlers.onreorder}
-                                onremove={handlers.onremove}
-                                onselect={handlers.onselect}/>
+                                availableItems={variant.availableItems}
+                                onmove={variant.handlers.onmove}
+                                onreorder={variant.handlers.onreorder}
+                                onremove={variant.handlers.onremove}
+                                onselect={variant.handlers.onselect}/>
                         {/if}
                     </div>
                 </section>

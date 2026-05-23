@@ -7,6 +7,7 @@
 <script lang="ts">
     import type {NamedItem} from "../../../integration/types";
     import {SortableList} from "@jhubbardsf/svelte-sortablejs";
+    import type {SortableEvent} from "sortablejs";
     import {createItemChooser} from "../../clickgui/setting/list/itemChooser.svelte";
     import ItemIcon from "../../clickgui/setting/list/ItemIcon.svelte";
 
@@ -22,7 +23,7 @@
 
     let {items, availableItems, addLabel = "Add", onmove: _onmove, onreorder, onremove, onselect}: Props = $props();
 
-    function handleSort(e: any) {
+    function handleSort(e: SortableEvent) {
         const from = e.oldIndex, to = e.newIndex;
         if (typeof from === "number" && typeof to === "number" && from !== to) {
             onreorder(from, to);
