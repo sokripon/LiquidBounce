@@ -37,19 +37,21 @@
     });
 </script>
 
-<SortableList class="hotbar" onSort={handleSort} animation={150}
-              forceFallback={true} direction="horizontal" draggable=".slot:not(.add)">
-    {#each items as item, index (item.value)}
-        <div class="slot" role="listitem" title={item.name}>
-            <span class="number">{index + 1}</span>
-            <ItemIcon src={item.icon} alt={item.name} size={26} placeholder/>
-            <button class="remove" title="Remove {item.name}"
-                    onclick={() => onremove(item.value)}>×</button>
-        </div>
-    {/each}
+<div class="hotbar-wrap" role="list">
+    <SortableList class="hotbar-slots-list" onSort={handleSort} animation={150}
+                  forceFallback={true} direction="horizontal" draggable=".slot">
+        {#each items as item, index (item.value)}
+            <div class="slot" role="listitem" title={item.name}>
+                <span class="number">{index + 1}</span>
+                <ItemIcon src={item.icon} alt={item.name} size={26} placeholder/>
+                <button class="remove" title="Remove {item.name}"
+                        onclick={() => onremove(item.value)}>×</button>
+            </div>
+        {/each}
+    </SortableList>
     <button class="slot add" class:active={chooser.open} title={addLabel}
             onclick={chooser.toggle}>+</button>
-</SortableList>
+</div>
 {#if chooser.open}
     <div class="palette">
         <div class="palette-header">
@@ -76,7 +78,7 @@
 {/if}
 
 <style lang="scss">
-    :global(.hotbar) {
+    .hotbar-wrap {
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
@@ -84,6 +86,10 @@
         background: color-mix(in srgb, #000 35%, transparent);
         border-radius: 4px;
         border: 1px solid color-mix(in srgb, var(--accent-color) 20%, transparent);
+    }
+
+    :global(.hotbar-slots-list) {
+        display: contents;
     }
 
     .slot {

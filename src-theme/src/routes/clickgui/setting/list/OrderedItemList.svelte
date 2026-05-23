@@ -24,7 +24,7 @@
     }
 </script>
 
-<div class="ordered-list">
+<div class="ordered-list" role="list">
     <SortableList class="ordered-list-rows" onSort={handleSort} animation={150}
                   forceFallback={true} draggable=".item-row">
         {#each items as item, index (item.value)}

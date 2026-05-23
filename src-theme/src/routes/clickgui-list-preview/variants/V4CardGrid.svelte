@@ -37,30 +37,32 @@
     });
 </script>
 
-<SortableList class="grid" onSort={handleSort} animation={150}
-              forceFallback={true} draggable=".card:not(.add)">
-    {#each items as item, index (item.value)}
-        <div class="card" role="listitem">
-            <span class="ordinal">{index + 1}</span>
-            <div class="icon-wrap">
-                <ItemIcon src={item.icon} alt={item.name} size={32} placeholder/>
+<div class="grid-wrap" role="list">
+    <SortableList class="card-grid-list" onSort={handleSort} animation={150}
+                  forceFallback={true} draggable=".card">
+        {#each items as item, index (item.value)}
+            <div class="card" role="listitem">
+                <span class="ordinal">{index + 1}</span>
+                <div class="icon-wrap">
+                    <ItemIcon src={item.icon} alt={item.name} size={32} placeholder/>
+                </div>
+                <div class="name" title={item.name}>{item.name}</div>
+                <div class="footer">
+                    <button class="ctrl" disabled={index === 0} title="Move left"
+                            onclick={() => onmove(item.value, -1)}>◀</button>
+                    <button class="ctrl remove" title="Remove"
+                            onclick={() => onremove(item.value)}>×</button>
+                    <button class="ctrl" disabled={index === items.length - 1} title="Move right"
+                            onclick={() => onmove(item.value, 1)}>▶</button>
+                </div>
             </div>
-            <div class="name" title={item.name}>{item.name}</div>
-            <div class="footer">
-                <button class="ctrl" disabled={index === 0} title="Move left"
-                        onclick={() => onmove(item.value, -1)}>◀</button>
-                <button class="ctrl remove" title="Remove"
-                        onclick={() => onremove(item.value)}>×</button>
-                <button class="ctrl" disabled={index === items.length - 1} title="Move right"
-                        onclick={() => onmove(item.value, 1)}>▶</button>
-            </div>
-        </div>
-    {/each}
+        {/each}
+    </SortableList>
     <button class="card add" onclick={chooser.show}>
         <span class="plus">+</span>
         <span class="add-label">{addLabel}</span>
     </button>
-</SortableList>
+</div>
 {#if chooser.open}
     <div class="overlay"
          role="button"
@@ -97,10 +99,14 @@
 {/if}
 
 <style lang="scss">
-    :global(.grid) {
+    .grid-wrap {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
+    }
+
+    :global(.card-grid-list) {
+        display: contents;
     }
 
     .card {

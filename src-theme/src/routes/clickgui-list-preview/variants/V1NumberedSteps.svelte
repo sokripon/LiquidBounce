@@ -37,11 +37,11 @@
     });
 </script>
 
-<div class="steps">
+<div class="steps" role="list">
     <SortableList class="steps-rows" onSort={handleSort} animation={150}
                   forceFallback={true} draggable=".step">
         {#each items as item, index (item.value)}
-            <div class="step" role="listitem">
+            <div class="step" class:last={index === items.length - 1 && !chooser.open} role="listitem">
                 <div class="badge">{index + 1}</div>
                 <div class="body">
                     {#if item.icon}
@@ -125,6 +125,7 @@
             background: color-mix(in srgb, var(--accent-color) 30%, transparent);
         }
         &:last-of-type::before { display: none; }
+        &.last::before { display: none; }
     }
 
     .badge {

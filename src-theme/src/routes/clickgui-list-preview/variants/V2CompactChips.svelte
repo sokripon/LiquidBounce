@@ -40,33 +40,35 @@
 
 </script>
 
-<SortableList class="chips" onSort={handleSort} animation={150}
-              forceFallback={true} direction="horizontal" draggable=".chip">
-    {#each items as item, index (item.value)}
-        <div class="chip" role="listitem">
-            <span class="ordinal">{index + 1}</span>
-            {#if item.icon}
-                <ItemIcon src={item.icon} size={14}/>
-            {/if}
-            <span class="name">{item.name}</span>
-            <button class="remove" title="Remove" onclick={() => onremove(item.value)}>×</button>
-        </div>
-    {/each}
-    {#if chooser.open}
-        <div class="search-chip">
-            <span class="ordinal">+</span>
-            <input class="search" type="text" placeholder="Search…"
-                   bind:this={inputEl}
-                   value={chooser.query}
-                   oninput={(e) => chooser.setQuery(e.currentTarget.value)}
-                   onkeydown={chooser.handleKey}
-                   spellcheck="false"/>
-            <button class="remove" title="Close" onclick={chooser.hide}>×</button>
-        </div>
-    {:else}
-        <button class="add" onclick={chooser.show} title={addLabel}>+</button>
-    {/if}
-</SortableList>
+<div class="chips-wrap" role="list">
+    <SortableList class="chips" onSort={handleSort} animation={150}
+                  forceFallback={true} direction="horizontal" draggable=".chip">
+        {#each items as item, index (item.value)}
+            <div class="chip" role="listitem">
+                <span class="ordinal">{index + 1}</span>
+                {#if item.icon}
+                    <ItemIcon src={item.icon} size={14}/>
+                {/if}
+                <span class="name">{item.name}</span>
+                <button class="remove" title="Remove" onclick={() => onremove(item.value)}>×</button>
+            </div>
+        {/each}
+        {#if chooser.open}
+            <div class="search-chip">
+                <span class="ordinal">+</span>
+                <input class="search" type="text" placeholder="Search…"
+                       bind:this={inputEl}
+                       value={chooser.query}
+                       oninput={(e) => chooser.setQuery(e.currentTarget.value)}
+                       onkeydown={chooser.handleKey}
+                       spellcheck="false"/>
+                <button class="remove" title="Close" onclick={chooser.hide}>×</button>
+            </div>
+        {:else}
+            <button class="add" onclick={chooser.show} title={addLabel}>+</button>
+        {/if}
+    </SortableList>
+</div>
 {#if chooser.open}
     <div class="suggestions">
         {#if chooser.filtered.length === 0}
@@ -85,6 +87,10 @@
 {/if}
 
 <style lang="scss">
+    .chips-wrap {
+        display: contents;
+    }
+
     :global(.chips) {
         display: flex;
         flex-wrap: wrap;

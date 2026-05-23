@@ -37,7 +37,7 @@
     });
 </script>
 
-<div class="table">
+<div class="table" role="list">
     <div class="thead">
         <span class="col-num">#</span>
         <span class="col-icon"></span>
