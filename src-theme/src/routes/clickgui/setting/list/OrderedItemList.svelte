@@ -24,7 +24,8 @@
     }
 </script>
 
-<div class="ordered-list" role="list">
+<div class="ordered-list">
+    <div class="sortable-role-wrap" role="list">
     <SortableList class="ordered-list-rows" onSort={handleSort} animation={150}
                   forceFallback={true} draggable=".item-row">
         {#each items as item, index (item.value)}
@@ -52,6 +53,7 @@
             </div>
         {/each}
     </SortableList>
+    </div>
     <SettingButton label={addLabel} onclick={onadd}/>
 </div>
 
@@ -59,6 +61,8 @@
     .ordered-list {
         margin-bottom: 10px;
     }
+
+    .sortable-role-wrap { display: contents; }
 
     :global(.ordered-list-rows) {
         display: flex;

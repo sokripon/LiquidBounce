@@ -37,7 +37,8 @@
     });
 </script>
 
-<div class="grid-wrap" role="list">
+<div class="grid-wrap">
+    <div class="sortable-role-wrap" role="list">
     <SortableList class="card-grid-list" onSort={handleSort} animation={150}
                   forceFallback={true} draggable=".card">
         {#each items as item, index (item.value)}
@@ -58,6 +59,7 @@
             </div>
         {/each}
     </SortableList>
+    </div>
     <button class="card add" onclick={chooser.show}>
         <span class="plus">+</span>
         <span class="add-label">{addLabel}</span>
@@ -104,6 +106,8 @@
         flex-wrap: wrap;
         gap: 6px;
     }
+
+    .sortable-role-wrap { display: contents; }
 
     :global(.card-grid-list) {
         display: contents;

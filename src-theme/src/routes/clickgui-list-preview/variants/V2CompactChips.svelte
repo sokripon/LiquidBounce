@@ -40,7 +40,8 @@
 
 </script>
 
-<div class="chips-wrap" role="list">
+<div class="chips-wrap">
+    <div class="sortable-role-wrap" role="list">
     <SortableList class="chips" onSort={handleSort} animation={150}
                   forceFallback={true} direction="horizontal" draggable=".chip">
         {#each items as item, index (item.value)}
@@ -53,21 +54,22 @@
                 <button class="remove" title="Remove" onclick={() => onremove(item.value)}>×</button>
             </div>
         {/each}
-        {#if chooser.open}
-            <div class="search-chip">
-                <span class="ordinal">+</span>
-                <input class="search" type="text" placeholder="Search…"
-                       bind:this={inputEl}
-                       value={chooser.query}
-                       oninput={(e) => chooser.setQuery(e.currentTarget.value)}
-                       onkeydown={chooser.handleKey}
-                       spellcheck="false"/>
-                <button class="remove" title="Close" onclick={chooser.hide}>×</button>
-            </div>
-        {:else}
-            <button class="add" onclick={chooser.show} title={addLabel}>+</button>
-        {/if}
     </SortableList>
+    </div>
+    {#if chooser.open}
+        <div class="search-chip">
+            <span class="ordinal">+</span>
+            <input class="search" type="text" placeholder="Search…"
+                   bind:this={inputEl}
+                   value={chooser.query}
+                   oninput={(e) => chooser.setQuery(e.currentTarget.value)}
+                   onkeydown={chooser.handleKey}
+                   spellcheck="false"/>
+            <button class="remove" title="Close" onclick={chooser.hide}>×</button>
+        </div>
+    {:else}
+        <button class="add" onclick={chooser.show} title={addLabel}>+</button>
+    {/if}
 </div>
 {#if chooser.open}
     <div class="suggestions">
@@ -88,14 +90,16 @@
 
 <style lang="scss">
     .chips-wrap {
-        display: contents;
-    }
-
-    :global(.chips) {
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
         align-items: center;
+    }
+
+    .sortable-role-wrap { display: contents; }
+
+    :global(.chips) {
+        display: contents;
     }
 
     .chip {

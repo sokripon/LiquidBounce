@@ -37,7 +37,8 @@
     });
 </script>
 
-<div class="steps" role="list">
+<div class="steps">
+    <div class="sortable-role-wrap" role="list">
     <SortableList class="steps-rows" onSort={handleSort} animation={150}
                   forceFallback={true} draggable=".step">
         {#each items as item, index (item.value)}
@@ -73,6 +74,9 @@
                 <button class="ctrl" title="Close" onclick={chooser.hide}>×</button>
             </div>
         </div>
+    {/if}
+    </div>
+    {#if chooser.open}
         {#if chooser.filtered.length === 0}
             <div class="empty">{chooser.emptyMessage}</div>
         {:else}
@@ -100,6 +104,8 @@
         position: relative;
     }
 
+    .sortable-role-wrap { display: contents; }
+
     :global(.steps-rows) {
         display: flex;
         flex-direction: column;
@@ -124,7 +130,6 @@
             width: 2px;
             background: color-mix(in srgb, var(--accent-color) 30%, transparent);
         }
-        &:last-of-type::before { display: none; }
         &.last::before { display: none; }
     }
 

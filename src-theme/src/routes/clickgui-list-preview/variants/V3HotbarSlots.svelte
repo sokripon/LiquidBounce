@@ -37,7 +37,8 @@
     });
 </script>
 
-<div class="hotbar-wrap" role="list">
+<div class="hotbar-wrap">
+    <div class="sortable-role-wrap" role="list">
     <SortableList class="hotbar-slots-list" onSort={handleSort} animation={150}
                   forceFallback={true} direction="horizontal" draggable=".slot">
         {#each items as item, index (item.value)}
@@ -49,6 +50,7 @@
             </div>
         {/each}
     </SortableList>
+    </div>
     <button class="slot add" class:active={chooser.open} title={addLabel}
             onclick={chooser.toggle}>+</button>
 </div>
@@ -87,6 +89,8 @@
         border-radius: 4px;
         border: 1px solid color-mix(in srgb, var(--accent-color) 20%, transparent);
     }
+
+    .sortable-role-wrap { display: contents; }
 
     :global(.hotbar-slots-list) {
         display: contents;

@@ -37,13 +37,14 @@
     });
 </script>
 
-<div class="table" role="list">
+<div class="table">
     <div class="thead">
         <span class="col-num">#</span>
         <span class="col-icon"></span>
         <span class="col-name">Item</span>
         <span class="col-actions">Actions</span>
     </div>
+    <div class="sortable-role-wrap" role="list">
     <SortableList class="tbody" onSort={handleSort} animation={150}
                   forceFallback={true} draggable=".trow">
         {#each items as item, index (item.value)}
@@ -66,6 +67,7 @@
             </div>
         {/each}
     </SortableList>
+    </div>
     {#if chooser.open}
         <div class="trow add-row">
             <span class="col-num">+</span>
@@ -108,6 +110,8 @@
         overflow: hidden;
         background: color-mix(in srgb, var(--clickgui-base-color) 10%, transparent);
     }
+
+    .sortable-role-wrap { display: contents; }
 
     .thead, .trow {
         display: grid;
